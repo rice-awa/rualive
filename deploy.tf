@@ -21,6 +21,16 @@ variable "enable_do_migration" {
   default = false
 }
 
+# 「似了喵？」Pages runtime secrets（agent 心跳 Bearer token / usage API key），
+# 经 $TF_VAR_AGENT_TOKEN / $TF_VAR_USAGE_API_KEY 注入（GH Actions secrets → terraform）
+variable "AGENT_TOKEN" {
+  type = string
+}
+
+variable "USAGE_API_KEY" {
+  type = string
+}
+
 resource "cloudflare_d1_database" "uptimeflare_d1" {
   account_id            = var.CLOUDFLARE_ACCOUNT_ID
   name                  = "uptimeflare_d1"
@@ -89,6 +99,16 @@ resource "cloudflare_pages_project" "uptimeflare" {
       compatibility_date  = "2025-04-02"
       compatibility_flags = ["nodejs_compat"]
       fail_open           = false
+      env_vars = {
+        AGENT_TOKEN = {
+          type  = "secret_text"
+          value = var.AGENT_TOKEN
+        }
+        USAGE_API_KEY = {
+          type  = "secret_text"
+          value = var.USAGE_API_KEY
+        }
+      }
     }
   }
 

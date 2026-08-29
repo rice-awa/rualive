@@ -99,6 +99,9 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           TF_VAR_CLOUDFLARE_ACCOUNT_ID: ${{ steps.fetch_account_id.outputs.account_id }}
           D1_ID: ${{ env.D1_ID }}
+          # 「似了喵？」Pages runtime secrets（agent 心跳 token / usage API key）
+          TF_VAR_AGENT_TOKEN: ${{ secrets.AGENT_TOKEN }}
+          TF_VAR_USAGE_API_KEY: ${{ secrets.USAGE_API_KEY }}
 
       # Currently Terraform Cloudflare provider doesn't support direct upload, use wrangler to upload instead.
       - name: Upload pages
