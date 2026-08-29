@@ -7,11 +7,11 @@ import { MaintenanceConfig, PageConfig, WorkerConfig } from './types/config'
 
 const pageConfig: PageConfig = {
   // Title for your status page
-  title: "AcoFork 的状态页",
+  title: "Riceawa 的状态页",
   // Links shown at the header of your status page, could set `highlight` to `true`
   links: [
-    { link: 'https://github.com/afoim', label: 'GitHub' },
-    { link: 'https://blog.acofork.com/', label: '博客' },
+    { link: 'https://github.com/riceawa', label: 'GitHub' },
+    { link: 'https://blog.rice-awa.top/', label: '博客' },
   ],
 }
 
@@ -27,11 +27,11 @@ const workerConfig: WorkerConfig = {
     //   // `method` 应该是有效的 HTTP 方法
     //   method: 'HEAD',
     //   // `target` 是一个有效的 URL
-    //   target: 'https://blog.acofork.com/',
+    //   target: 'https://blog.rice-awa.top/',
     //   // [可选] `tooltip` 仅用于在状态页面显示提示信息
     //   //tooltip: '这是此监控的提示信息',
     //   // [可选] `statusPageLink` 仅用于状态页面的可点击链接
-    //   statusPageLink: 'https://blog.acofork.com/',
+    //   statusPageLink: 'https://blog.rice-awa.top/',
     //   // [可选] `hideLatencyChart` 如果设置为 true，将隐藏状态页面的延迟图表
     //   hideLatencyChart: false,
     //   // [可选] `expectedCodes` 是可接受的 HTTP 响应代码数组，如果不指定，默认为 2xx
@@ -97,7 +97,7 @@ const workerConfig: WorkerConfig = {
       // $MSG will be replaced with the human-readable notification message
       payload: {
         "from": "系统状态更新 <uptimeflare@update.2x.nz>",
-        "to": ["acofork@foxmail.com"],
+        "to": ["riceawa@rice-awa.top"],
         "subject": "UptimeFlare 状态更新",
         "text": "$MSG"
       },
@@ -154,7 +154,7 @@ const workerConfig: WorkerConfig = {
 
           const resendPayload = {
             from: "系统状态更新 <uptimeflare@update.2x.nz>",
-            to: ["acofork@foxmail.com"],
+            to: ["riceawa@rice-awa.top"],
             subject: subject,
             html: htmlContent,
           };
