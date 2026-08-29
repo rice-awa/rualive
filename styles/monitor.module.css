@@ -141,39 +141,6 @@
   transform: translateY(-3px);
 }
 
-/* 监控卡 hover 快捷详情弹窗（右上角浮出，动森纸片） */
-.monQuick {
-  position: absolute;
-  right: 12px;
-  bottom: calc(100% + 8px);
-  z-index: 30;
-  background: #fffef7;
-  border: 3px solid var(--ink);
-  border-radius: 14px;
-  padding: 8px 12px;
-  font-size: 12px;
-  font-weight: 800;
-  color: var(--ink);
-  box-shadow: 0 4px 0 rgba(74, 59, 44, 0.22);
-  line-height: 1.7;
-  min-width: 175px;
-  max-width: 280px;
-  display: none;
-}
-.monCard:hover .monQuick {
-  display: block;
-}
-.monQuickRow {
-  display: flex;
-  justify-content: space-between;
-  gap: 14px;
-  align-items: center;
-  white-space: nowrap;
-}
-.monQuickVal {
-  color: var(--leaf);
-}
-
 .monHead {
   display: flex;
   align-items: center;
@@ -280,7 +247,6 @@ a.monName:hover {
   line-height: 1.5;
   max-width: 240px;
   pointer-events: none;
-  transform: translate(-50%, -100%);
 }
 
 /* 延迟曲线（手绘 SVG，动森色） */

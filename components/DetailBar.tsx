@@ -3,13 +3,14 @@ import { monitorColor } from '@/util/monitorFormat'
 import { Modal } from 'animal-island-ui'
 import { useResizeObserver } from '@mantine/hooks'
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import styles from '@/styles/monitor.module.css'
 const moment = require('moment')
 require('moment-precise-range-plugin')
 
-/** 条带格 hover 浮窗数据：内容 + 格子在视口中的水平中心/顶部 */
-type BarTip = { content: string; cellX: number; cellTop: number }
+/** 条带格 hover 浮窗数据：内容 + 鼠标在视口中的坐标（浮窗跟随鼠标） */
+type BarTip = { content: string; x: number; y: number }
 
 /**
  * 近 90 天可用率条带（动森风，原 Mantine DetailBar）：
@@ -113,10 +114,7 @@ export default function DetailBar({
         key={i}
         className={styles.barCell}
         style={{ background: monitorColor(dayPercent, false) }}
-        onMouseEnter={(e) => {
-          const r = e.currentTarget.getBoundingClientRect()
-          setTip({ content: tooltip, cellX: r.left + r.width / 2, cellTop: r.top })
-        }}
+        onMouseMove={(e) => setTip({ content: tooltip, x: e.clientX, y: e.clientY })}
         onMouseLeave={() => setTip(null)}
         onClick={() => {
           if (dayDownTime > 0) {
@@ -142,14 +140,20 @@ export default function DetailBar({
     )
   }
 
-  // 浮窗水平居中于格子上方，并夹紧在视口内（浮窗 max-width 240，半宽留 125 保险）
+  // 浮窗跟随鼠标（右下偏移 14px），并在视口内夹紧避免溢出
   let tipLeft = 0
   let tipTop = 0
   if (tip) {
-    const clamp = 125
     const vw = typeof window !== 'undefined' ? window.innerWidth : 800
-    tipLeft = Math.max(clamp, Math.min(tip.cellX, vw - clamp))
-    tipTop = tip.cellTop - 8
+    const vh = typeof window !== 'undefined' ? window.innerHeight : 600
+    const w = 260
+    const h = 84
+    tipLeft = tip.x + 14
+    tipTop = tip.y + 14
+    if (tipLeft + w > vw) tipLeft = tip.x - w - 14
+    if (tipTop + h > vh) tipTop = tip.y - h - 14
+    tipLeft = Math.max(4, tipLeft)
+    tipTop = Math.max(4, tipTop)
   }
 
   return (
@@ -171,11 +175,15 @@ export default function DetailBar({
       >
         {uptimePercentBars.slice(Math.floor(Math.max(9 * 90 - barRect.width, 0) / 9), 90)}
       </div>
-      {tip && (
-        <div className={styles.barTip} style={{ left: tipLeft, top: tipTop }}>
-          {tip.content}
-        </div>
-      )}
+      {tip &&
+        createPortal(
+          // 先用 portal 挂到 body：.monCard:hover 会带 transform，会把 fixed 子元素
+          // 相对卡片定位而非视口，导致浮窗位置错乱（“位置不对”根因）。
+          <div className={styles.barTip} style={{ left: tipLeft, top: tipTop }}>
+            {tip.content}
+          </div>,
+          document.body
+        )}
     </>
   )
 }

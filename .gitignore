@@ -45,3 +45,6 @@ terraform.tfstate*
 /agent/agent.json
 __pycache__/
 *.py[cod]
+
+# playwright-cli 浏览器测试产物
+.playwright-cli/
