@@ -98,5 +98,13 @@
   "device.hours": "小時",
   "device.barTip": "{{hour}} 時 · {{dur}}",
   "device.noSession": "💤 無圖形會話（headless，僅心跳）",
-  "device.publicChip": "公開"
+  "device.publicChip": "公開",
+  "header.tagline": "似了喵？",
+  "mtn.upcoming": "即將開始",
+  "mtn.active": "進行中",
+  "divider.text": "似了喵設備存活區 ｜ 伺服器 / 網站監控",
+  "incidents.title": "📜 歷來事件",
+  "incidents.sub": "依月份檢視歷來事件與維護記錄",
+  "incidents.filter": "篩選站點",
+  "footer.default": "UptimeFlare × 似了喵？ · Powered by <a href=\"https://github.com/lyc8503/UptimeFlare\" target=\"_blank\" rel=\"noreferrer\">UptimeFlare</a>"
 }

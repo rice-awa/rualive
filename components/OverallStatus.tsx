@@ -1,10 +1,9 @@
 import { MaintenanceConfig, MonitorTarget } from '@/types/config'
-import { Center, Container, Title, Collapse, Button, Box } from '@mantine/core'
-import { IconCircleCheck, IconAlertCircle, IconPlus, IconMinus } from '@tabler/icons-react'
 import { useEffect, useState } from 'react'
 import MaintenanceAlert from './MaintenanceAlert'
 import { pageConfig } from '@/uptime.config'
 import { useTranslation } from 'react-i18next'
+import styles from '@/styles/monitor.module.css'
 
 function useWindowVisibility() {
   const [isVisible, setIsVisible] = useState(true)
@@ -16,6 +15,7 @@ function useWindowVisibility() {
   return isVisible
 }
 
+/** 总体状态横幅（动森风，原型 .ov-banner）：状态文案 + 最后更新 + 维护提醒 */
 export default function OverallStatus({
   state,
   maintenances,
@@ -30,19 +30,25 @@ export default function OverallStatus({
   let groupedMonitor = (group && Object.keys(group).length > 0) || false
 
   let statusString = ''
-  let icon = <IconAlertCircle style={{ width: 64, height: 64, color: '#b91c1c' }} />
+  let bannerMod = styles.ovNone
+  let icon = '❔'
   if (state.overallUp === 0 && state.overallDown === 0) {
     statusString = t('No data yet')
   } else if (state.overallUp === 0) {
     statusString = t('All systems not operational')
+    bannerMod = styles.ovDown
+    icon = '✗'
   } else if (state.overallDown === 0) {
     statusString = t('All systems operational')
-    icon = <IconCircleCheck style={{ width: 64, height: 64, color: '#059669' }} />
+    bannerMod = styles.ovOk
+    icon = '✓'
   } else {
     statusString = t('Some systems not operational', {
       down: state.overallDown,
       total: state.overallUp + state.overallDown,
     })
+    bannerMod = styles.ovWarn
+    icon = '⚠'
   }
 
   const [openTime] = useState(Math.round(Date.now() / 1000))
@@ -86,45 +92,41 @@ export default function OverallStatus({
     }))
 
   return (
-    <Container size="md" mt="xl">
-      <Center>{icon}</Center>
-      <Title mt="sm" style={{ textAlign: 'center' }} order={1}>
-        {statusString}
-      </Title>
-      <Title mt="sm" style={{ textAlign: 'center', color: '#70778c' }} order={5}>
-        {t('Last updated on', {
-          date: new Date(state.lastUpdate * 1000).toLocaleString(),
-          seconds: currentTime - state.lastUpdate,
-        })}
-      </Title>
+    <section className={styles.section}>
+      <div className={[styles.ovBanner, bannerMod].join(' ')}>
+        <span className={styles.ovIcon}>{icon}</span>
+        <span>{statusString}</span>
+        <small>
+          · {t('Last updated on', {
+            date: new Date(state.lastUpdate * 1000).toLocaleString(),
+            seconds: currentTime - state.lastUpdate,
+          })}
+        </small>
+      </div>
 
-      {/* Upcoming Maintenance */}
       {upcomingMaintenances.length > 0 && (
-        <>
-          <Title mt="4px" style={{ textAlign: 'center', color: '#70778c' }} order={5}>
-            {t('upcoming maintenance', { count: upcomingMaintenances.length })}{' '}
-            <span
-              style={{ textDecoration: 'underline', cursor: 'pointer' }}
-              onClick={() => setExpandUpcoming(!expandUpcoming)}
-            >
-              {expandUpcoming ? t('Hide') : t('Show')}
-            </span>
-          </Title>
-
-          <Collapse in={expandUpcoming}>
-            {upcomingMaintenances.map((maintenance, idx) => (
-              <MaintenanceAlert
-                key={`upcoming-${idx}`}
-                maintenance={maintenance}
-                style={{ maxWidth: groupedMonitor ? '897px' : '865px' }}
-                upcoming
-              />
-            ))}
-          </Collapse>
-        </>
+        <div style={{ textAlign: 'center', marginTop: 12 }}>
+          <button
+            type="button"
+            className={[styles.btn, styles.btnGhost, styles.btnSm].join(' ')}
+            onClick={() => setExpandUpcoming(!expandUpcoming)}
+          >
+            {expandUpcoming ? t('Hide') : t('Show')}{' '}
+            {t('upcoming maintenance', { count: upcomingMaintenances.length })}
+          </button>
+        </div>
       )}
 
-      {/* Active Maintenance */}
+      {expandUpcoming &&
+        upcomingMaintenances.map((maintenance, idx) => (
+          <MaintenanceAlert
+            key={`upcoming-${idx}`}
+            maintenance={maintenance}
+            style={{ maxWidth: groupedMonitor ? '897px' : '865px' }}
+            upcoming
+          />
+        ))}
+
       {activeMaintenances.map((maintenance, idx) => (
         <MaintenanceAlert
           key={`active-${idx}`}
@@ -132,6 +134,6 @@ export default function OverallStatus({
           style={{ maxWidth: groupedMonitor ? '897px' : '865px' }}
         />
       ))}
-    </Container>
+    </section>
   )
 }

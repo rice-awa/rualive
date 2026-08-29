@@ -98,5 +98,13 @@
   "device.hours": "h",
   "device.barTip": "{{hour}}:00 · {{dur}}",
   "device.noSession": "💤 no GUI session (headless, heartbeat only)",
-  "device.publicChip": "public"
+  "device.publicChip": "public",
+  "header.tagline": "cat-alive status",
+  "mtn.upcoming": "Upcoming",
+  "mtn.active": "Active",
+  "divider.text": "Device alive zone ｜ HTTP monitors",
+  "incidents.title": "📜 History",
+  "incidents.sub": "Browse historical incidents & maintenance by month",
+  "incidents.filter": "Filter by monitor",
+  "footer.default": "UptimeFlare × Si Le Miao? · Powered by <a href=\"https://github.com/lyc8503/UptimeFlare\" target=\"_blank\" rel=\"noreferrer\">UptimeFlare</a>"
 }

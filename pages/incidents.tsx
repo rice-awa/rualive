@@ -1,18 +1,16 @@
 import Head from 'next/head'
 
-import { Inter } from 'next/font/google'
 import { MaintenanceConfig, MonitorTarget } from '@/types/config'
 import { maintenances, pageConfig, workerConfig } from '@/uptime.config'
 import Header from '@/components/Header'
-import { Box, Button, Center, Container, Group, Select } from '@mantine/core'
 import Footer from '@/components/Footer'
-import { useEffect, useState } from 'react'
 import MaintenanceAlert from '@/components/MaintenanceAlert'
 import NoIncidentsAlert from '@/components/NoIncidents'
 import { useTranslation } from 'react-i18next'
+import { useEffect, useState } from 'react'
+import styles from '@/styles/monitor.module.css'
 
 export const runtime = 'experimental-edge'
-const inter = Inter({ subsets: ['latin'] })
 
 function getSelectedMonth() {
   const hash = window.location.hash.replace('#', '')
@@ -71,61 +69,59 @@ export default function IncidentsPage() {
 
   const { prev, next } = getPrevNextMonth(selectedMonth)
 
-  const monitorOptions = [
-    { value: '', label: t('All') },
-    ...workerConfig.monitors.map((monitor) => ({
-      value: monitor.id,
-      label: monitor.name,
-    })),
-  ]
-
   return (
     <>
       <Head>
-        <title>{pageConfig.title}</title>
+        <title>{`${pageConfig.title} · ${t('incidents.title')}`}</title>
         <link rel="icon" href={pageConfig.favicon ?? '/favicon.png'} />
       </Head>
 
-      <main className={inter.className}>
-        <Header
-          style={{
-            marginBottom: '40px',
-          }}
-        />
-        <Center>
-          <Container size="md" style={{ width: '100%' }}>
-            <Group justify="end" mb="md">
-              <Select
-                placeholder={t('Select monitor')}
-                data={monitorOptions}
-                value={selectedMonitor}
-                onChange={setSelectedMonitor}
-                clearable
-                style={{ maxWidth: 300, float: 'right' }}
-              />
-            </Group>
-            <Box>
-              {monitorFilteredIncidents.length === 0 ? (
-                <NoIncidentsAlert />
-              ) : (
-                monitorFilteredIncidents.map((incident, i) => (
-                  <MaintenanceAlert key={i} maintenance={incident} />
-                ))
-              )}
-            </Box>
-            <Group justify="space-between" mt="md">
-              <Button variant="default" onClick={() => (window.location.hash = prev)}>
-                {t('Backwards')}
-              </Button>
-              <Box style={{ alignSelf: 'center', fontWeight: 500, fontSize: 18 }}>
-                {selectedMonth}
-              </Box>
-              <Button variant="default" onClick={() => (window.location.hash = next)}>
-                {t('Forward')}
-              </Button>
-            </Group>
-          </Container>
-        </Center>
+      <main>
+        <Header />
+
+        <section className={styles.section}>
+          <div className={styles.areaHead}>
+            <h2>{t('incidents.title')}</h2>
+            <span className={styles.sub}>{t('incidents.sub')}</span>
+          </div>
+
+          <div className={styles.monthNav}>
+            <button type="button" className={[styles.btn, styles.btnGhost].join(' ')} onClick={() => (window.location.hash = prev)}>
+              {t('Backwards')}
+            </button>
+            <span className={styles.monthPill}>{selectedMonth}</span>
+            <button type="button" className={[styles.btn, styles.btnGhost].join(' ')} onClick={() => (window.location.hash = next)}>
+              {t('Forward')}
+            </button>
+          </div>
+
+          {workerConfig.monitors.length > 0 && (
+            <div className={styles.filterRow}>
+              <span>{t('incidents.filter')}</span>
+              <select
+                className={styles.select}
+                value={selectedMonitor ?? ''}
+                onChange={(e) => setSelectedMonitor(e.target.value || null)}
+              >
+                <option value="">{t('All')}</option>
+                {workerConfig.monitors.map((monitor) => (
+                  <option key={monitor.id} value={monitor.id}>
+                    {monitor.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {monitorFilteredIncidents.length === 0 ? (
+            <NoIncidentsAlert />
+          ) : (
+            monitorFilteredIncidents.map((incident, i) => (
+              <MaintenanceAlert key={i} maintenance={incident} style={{ maxWidth: '100%' }} />
+            ))
+          )}
+        </section>
+
         <Footer />
       </main>
     </>

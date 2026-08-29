@@ -1,4 +1,5 @@
-/* 「似了喵？」动森色板 —— 全局 CSS 变量（CSS Modules 无法声明 :root 变量，故放全局文件，在 _app.tsx 引入） */
+/* 「似了喵？」动森全局预设 —— 全局 CSS 变量 + body 底色（CSS Modules 无法声明 :root 变量，故放全局文件，在 _app.tsx 引入）
+   作用范围覆盖全站，包括原有 UptimeFlare 的 HTTP 监控区 / 历史故障页，确保所有界面统一动森风。 */
 :root {
   --paper: #f7efdd;
   --paper-2: #fbf5e6;
@@ -16,4 +17,26 @@
   --red: #e07b6a;
   --parch: #e9e0cc;
   --parch-d: #cfc2a6;
+}
+
+/* 动森纸纹背景（原型 body 样式）：羊皮纸底 + 圆点纹理 + 墨色文字 + Nunito 字体族 */
+html,
+body {
+  margin: 0;
+}
+body {
+  background: var(--paper);
+  background-image: radial-gradient(rgba(74, 59, 44, 0.055) 1.2px, transparent 1.2px);
+  background-size: 24px 24px;
+  color: var(--ink);
+  font-family: 'Nunito', 'Varela Round', 'Quicksand', 'Noto Sans SC', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  padding-bottom: 110px;
+}
+::selection {
+  background: var(--lime);
+  color: var(--ink);
+}
+a {
+  color: var(--leaf);
 }

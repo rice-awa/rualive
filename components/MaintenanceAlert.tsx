@@ -1,10 +1,13 @@
-import { Alert, List, Text, useMantineTheme } from '@mantine/core'
-import { useMediaQuery } from '@mantine/hooks'
-import { IconAlertTriangle } from '@tabler/icons-react'
 import { MaintenanceConfig, MonitorTarget } from '@/types/config'
 import { pageConfig } from '@/uptime.config'
+import { maintenanceColor } from '@/util/monitorFormat'
 import { useTranslation } from 'react-i18next'
+import styles from '@/styles/monitor.module.css'
 
+/**
+ * 维护 / 历史故障条目（动森面板，原型无对应块 —— 由 Mantine Alert 迁移）。
+ * incidents 页与主页 OverallStatus 共用；upcoming 时左侧边为灰色虚线态。
+ */
 export default function MaintenanceAlert({
   maintenance,
   style,
@@ -15,81 +18,40 @@ export default function MaintenanceAlert({
   upcoming?: boolean
 }) {
   const { t } = useTranslation('common')
-  const theme = useMantineTheme()
-  const isDesktop = useMediaQuery(`(min-width: ${theme.breakpoints.sm})`)
+  const accent = maintenanceColor(upcoming ? pageConfig.maintenances?.upcomingColor ?? 'gray' : maintenance.color)
 
   return (
-    <Alert
-      icon={<IconAlertTriangle />}
-      title={
-        <span
-          style={{
-            fontSize: '1rem',
-            fontWeight: 700,
-          }}
-        >
-          {(upcoming ? t('Upcoming') : '') + (maintenance.title || t('Scheduled Maintenance'))}
-        </span>
-      }
-      color={
-        upcoming ? pageConfig.maintenances?.upcomingColor ?? 'gray' : maintenance.color || 'yellow'
-      }
-      withCloseButton={false}
-      style={{ margin: '16px auto 0 auto', ...style }}
+    <article
+      className={styles.mtnAlert}
+      style={{ ...style, borderLeftColor: accent } as React.CSSProperties}
     >
-      {/* Date range in top right (desktop) or inline (mobile) */}
-      <div
-        style={{
-          ...{
-            top: 10,
-            fontSize: '0.85rem',
-            borderRadius: 6,
-          },
-          ...(isDesktop
-            ? {
-                position: 'absolute',
-                right: 10,
-                padding: '2px 8px',
-                textAlign: 'right',
-              }
-            : { marginBottom: 4 }),
-        }}
-      >
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'auto 1fr',
-            gridColumnGap: '3px',
-          }}
-        >
-          <div style={{ textAlign: 'right', fontWeight: 'bold' }}>
-            {upcoming ? t('Scheduled for') : t('From')}
-          </div>
-          <div>{new Date(maintenance.start).toLocaleString()}</div>
-          <div style={{ textAlign: 'right', fontWeight: 'bold' }}>
-            {upcoming ? t('Expected end') : t('To')}
-          </div>
+      <div className={styles.mtnHead}>
+        <span className={styles.mtnChip}>{upcoming ? t('mtn.upcoming') : t('mtn.active')}</span>
+        <b className={styles.mtnTitle}>{maintenance.title || t('Scheduled Maintenance')}</b>
+        <div className={styles.mtnDate}>
           <div>
-            {maintenance.end
-              ? new Date(maintenance.end).toLocaleString()
-              : t('Until further notice')}
+            <b>{upcoming ? t('Scheduled for') : t('From')}</b>
+            <span>{new Date(maintenance.start).toLocaleString()}</span>
+            <b>{upcoming ? t('Expected end') : t('To')}</b>
+            <span>
+              {maintenance.end ? new Date(maintenance.end).toLocaleString() : t('Until further notice')}
+            </span>
           </div>
         </div>
       </div>
 
-      <Text style={{ paddingTop: '3px', whiteSpace: 'pre-line' }}>{maintenance.body}</Text>
+      <div className={styles.mtnBody}>{maintenance.body}</div>
+
       {maintenance.monitors && maintenance.monitors.length > 0 && (
-        <>
-          <Text mt="xs">
-            <b>{t('Affected components')}</b>
-          </Text>
-          <List size="sm" withPadding>
+        <div className={styles.mtnAffected}>
+          <b>{t('Affected components')}</b>
+          <ul>
             {maintenance.monitors.map((comp, compIdx) => (
-              <List.Item key={compIdx}>{comp?.name ?? t('MONITOR ID NOT FOUND')}</List.Item>
+              <li key={compIdx}>{comp?.name ?? t('MONITOR ID NOT FOUND')}</li>
             ))}
-          </List>
-        </>
+          </ul>
+        </div>
       )}
-    </Alert>
+    </article>
   )
 }

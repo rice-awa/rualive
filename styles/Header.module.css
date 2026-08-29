@@ -1,33 +1,82 @@
+/* 动森页头（原型 .phead）：站点标题 + 圆角胶囊导航链接 */
 .header {
-  height: rem(56px);
-  margin-bottom: rem(100px);
-  background-color: var(--mantine-color-body);
-  border-bottom: rem(1px) solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 22px 20px 0;
 }
 
 .inner {
-  height: rem(56px);
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.logo {
+  height: 44px;
+  max-width: 190px;
+  width: auto;
+  object-fit: contain;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0;
+  white-space: nowrap;
+}
+.title small {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  margin-left: 8px;
+}
+
+.links {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
   align-items: center;
 }
 
 .link {
-  display: block;
-  line-height: 1;
-  padding: rem(8px) rem(12px);
-  border-radius: var(--mantine-radius-sm);
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--paper-2);
+  border: 2.5px solid var(--ink);
+  border-radius: 999px;
+  padding: 5px 14px;
   text-decoration: none;
-  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
-  font-size: var(--mantine-font-size-sm);
-  font-weight: 500;
+  box-shadow: 0 3px 0 rgba(74, 59, 44, 0.25);
+  transition: transform 0.06s, box-shadow 0.06s, filter 0.12s;
+  white-space: nowrap;
+}
+.link:hover {
+  filter: brightness(1.04);
+}
+.link:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--ink);
+}
+.linkActive {
+  background: var(--leaf);
+  color: #fff;
+  box-shadow: 0 2px 0 var(--ink);
+}
 
-  @mixin hover {
-    background-color: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
-  }
-
-  [data-mantine-color-scheme] &[data-active] {
-    background-color: var(--mantine-color-blue-filled);
-    color: var(--mantine-color-white);
+@media (max-width: 640px) {
+  .title small {
+    display: block;
+    margin-left: 0;
   }
 }

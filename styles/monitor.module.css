@@ -1,0 +1,427 @@
+/* 「似了喵？」HTTP 监控区 + 历史故障页 动森样式 —— 与 device.module.css 同一设计语言（原型 .mz 已迁移为动森风） */
+
+/* ============ 共享容器 / 元件 ============ */
+.section {
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 4px 20px 6px;
+  color: var(--ink);
+  font-family: 'Nunito', 'Varela Round', 'Quicksand', 'Noto Sans SC', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+}
+
+.areaHead {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 30px 0 14px;
+}
+.areaHead h2 {
+  font-size: 19px;
+  margin: 0;
+  font-weight: 800;
+}
+.areaHead .sub {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+
+.leafDiv {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 36px 0 8px;
+  color: var(--ink-soft);
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.leafDiv::before,
+.leafDiv::after {
+  content: '';
+  flex: 1;
+  border-top: 3px dashed rgba(74, 59, 44, 0.28);
+}
+
+.chip {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.55);
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 1px 9px;
+  vertical-align: 2px;
+  margin-left: 4px;
+  white-space: nowrap;
+}
+.muted {
+  color: var(--ink-soft);
+}
+.spacer {
+  flex: 1;
+}
+
+.btn {
+  font: inherit;
+  font-weight: 800;
+  color: #fff;
+  background: var(--leaf);
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  padding: 7px 18px;
+  cursor: pointer;
+  box-shadow: 0 4px 0 var(--ink);
+  transition: transform 0.06s, box-shadow 0.06s, filter 0.12s;
+  white-space: nowrap;
+}
+.btn:hover {
+  filter: brightness(1.06);
+}
+.btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--ink);
+}
+.btnGhost {
+  background: var(--paper-2);
+  color: var(--ink);
+}
+.btnSm {
+  padding: 4px 13px;
+  border-width: 2.5px;
+  font-size: 13px;
+  box-shadow: 0 3px 0 var(--ink);
+}
+
+/* ============ 总体状态横幅（原型 .ov-banner） ============ */
+.ovBanner {
+  background: #d9edb2;
+  border: 3px solid var(--ink);
+  border-radius: 16px;
+  padding: 10px 18px;
+  font-weight: 800;
+  box-shadow: 0 4px 0 rgba(74, 59, 44, 0.22);
+  font-size: 14.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+.ovBanner small {
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+.ovWarn {
+  background: #f5d98b;
+}
+.ovDown {
+  background: #f2a9a2;
+}
+.ovNone {
+  background: var(--parch);
+}
+.ovIcon {
+  font-size: 16px;
+}
+
+/* ============ 监控卡片（原 Mantine Card，迁移为动森面板） ============ */
+.monCard {
+  background: var(--paper-2);
+  border: 3px solid var(--ink);
+  border-radius: 20px;
+  padding: 14px 18px;
+  box-shadow: 0 5px 0 rgba(74, 59, 44, 0.22);
+  margin-bottom: 14px;
+}
+
+.monHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid rgba(74, 59, 44, 0.55);
+  flex: none;
+}
+.dotUp {
+  background: var(--lime-d);
+}
+.dotDown {
+  background: var(--red);
+}
+.dotWarn {
+  background: var(--orange);
+}
+
+.monName {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+a.monName:hover {
+  color: var(--leaf);
+}
+.monUptime {
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.monUptimeOk {
+  color: #3f8f46;
+}
+.monUptimeWarn {
+  color: #d98a1f;
+}
+.monUptimeDown {
+  color: var(--red);
+}
+
+.monMeta {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  font-weight: 700;
+  margin-top: 5px;
+}
+.monUrl {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: var(--ink-soft);
+  word-break: break-all;
+}
+
+/* 90 天可用率条带（原 DetailBar） */
+.barRow {
+  display: flex;
+  flex-wrap: nowrap;
+  margin-top: 12px;
+  margin-bottom: 6px;
+  overflow: hidden;
+}
+.barCell {
+  height: 20px;
+  width: 7px;
+  border-radius: 3px;
+  margin-left: 1px;
+  margin-right: 1px;
+  border: 1px solid rgba(74, 59, 44, 0.25);
+  flex: none;
+  cursor: pointer;
+  transition: filter 0.1s;
+}
+.barCell:hover {
+  filter: brightness(0.85);
+}
+
+/* 延迟曲线（手绘 SVG，动森色） */
+.chartBox {
+  margin-top: 10px;
+}
+.chartTitle {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ink-soft);
+  margin-bottom: 4px;
+}
+.chartSvg {
+  width: 100%;
+  height: 100px;
+  display: block;
+}
+
+/* ============ 分组（原 Mantine Accordion） ============ */
+.monGroup {
+  margin-bottom: 14px;
+}
+.monGroupHead {
+  width: 100%;
+  font: inherit;
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--paper-2);
+  border: 3px solid var(--ink);
+  border-radius: 20px;
+  padding: 12px 18px;
+  cursor: pointer;
+  box-shadow: 0 5px 0 rgba(74, 59, 44, 0.22);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: filter 0.12s;
+}
+.monGroupHead:hover {
+  filter: brightness(1.03);
+}
+.monGroupBody {
+  padding-top: 12px;
+}
+
+/* ============ 维护 / 故障提醒（原 Mantine Alert） ============ */
+.mtnAlert {
+  position: relative;
+  background: var(--paper-2);
+  border: 3px solid var(--ink);
+  border-left-width: 11px;
+  border-radius: 18px;
+  padding: 14px 18px;
+  box-shadow: 0 5px 0 rgba(74, 59, 44, 0.2);
+  margin: 16px auto 0;
+}
+.mtnHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.mtnChip {
+  font-size: 11px;
+  font-weight: 800;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  padding: 1px 9px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.6);
+}
+.mtnTitle {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.mtnDate {
+  font-size: 12px;
+  color: var(--ink-soft);
+  font-weight: 700;
+  margin-left: auto;
+  text-align: right;
+}
+.mtnDate div {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-column-gap: 6px;
+}
+.mtnDate b {
+  text-align: right;
+}
+.mtnBody {
+  font-size: 13.5px;
+  line-height: 1.7;
+  margin-top: 8px;
+  white-space: pre-line;
+}
+.mtnAffected {
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.mtnAffected ul {
+  margin: 4px 0 0;
+  padding-left: 20px;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+/* ============ 空状态（原 NoIncidents Alert） ============ */
+.emptyState {
+  background: var(--paper-2);
+  border: 3px dashed rgba(74, 59, 44, 0.4);
+  border-radius: 20px;
+  padding: 30px 18px;
+  text-align: center;
+  margin: 16px auto 0;
+}
+.emptyState .big {
+  font-size: 34px;
+}
+.emptyState .title {
+  font-size: 16px;
+  font-weight: 800;
+  margin-top: 8px;
+}
+.emptyState .body {
+  font-size: 13px;
+  color: var(--ink-soft);
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+/* ============ 历史故障页 ============ */
+.monthNav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: 6px 0 4px;
+  flex-wrap: wrap;
+}
+.monthPill {
+  background: var(--paper-2);
+  border: 2.5px solid var(--ink);
+  border-radius: 999px;
+  padding: 6px 18px;
+  font-weight: 800;
+  font-size: 15px;
+  box-shadow: 0 3px 0 rgba(74, 59, 44, 0.25);
+  white-space: nowrap;
+}
+.filterRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  flex-wrap: wrap;
+}
+.select {
+  font: inherit;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--paper-2);
+  border: 2.5px solid var(--ink);
+  border-radius: 999px;
+  padding: 6px 14px;
+  cursor: pointer;
+  outline: none;
+  box-shadow: 0 3px 0 rgba(74, 59, 44, 0.25);
+  max-width: 260px;
+}
+.select:focus {
+  box-shadow: 0 0 0 3px rgba(175, 212, 106, 0.6);
+}
+
+/* ============ 页脚（原型 .pfoot） ============ */
+.pfoot {
+  text-align: center;
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 700;
+  margin: 44px 0 10px;
+}
+.pfoot :global(a) {
+  color: var(--ink-soft);
+}
+
+/* ============ 可访问性 ============ */
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .monGroupHead {
+    transition: none !important;
+  }
+}

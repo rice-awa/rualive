@@ -1,12 +1,17 @@
 import { MonitorState, MonitorTarget } from '@/types/config'
-import { getColor } from '@/util/color'
-import { Box, Tooltip, Modal } from '@mantine/core'
+import { monitorColor } from '@/util/monitorFormat'
+import { Modal } from 'animal-island-ui'
 import { useResizeObserver } from '@mantine/hooks'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import styles from '@/styles/monitor.module.css'
 const moment = require('moment')
 require('moment-precise-range-plugin')
 
+/**
+ * 近 90 天可用率条带（动森风，原 Mantine DetailBar）：
+ * 每格一天，hover 显示可用率 / 故障时长，点击当天打开故障详情弹窗。
+ */
 export default function DetailBar({
   monitor,
   state,
@@ -18,7 +23,7 @@ export default function DetailBar({
   const [barRef, barRect] = useResizeObserver()
   const [modalOpened, setModalOpened] = useState(false)
   const [modalTitle, setModalTitle] = useState('')
-  const [modelContent, setModelContent] = useState(<div />)
+  const [modalContent, setModalContent] = useState(<div />)
 
   const overlapLen = (x1: number, x2: number, y1: number, y2: number) => {
     return Math.max(0, Math.min(x2, y2) - Math.max(x1, y1))
@@ -48,7 +53,6 @@ export default function DetailBar({
       const overlap = overlapLen(dayStart, dayEnd, incidentStart, incidentEnd)
       dayDownTime += overlap
 
-      // Incident history for the day
       if (overlap > 0) {
         for (let i = 0; i < incident.error.length; i++) {
           let partStart = incident.start[i]
@@ -74,87 +78,69 @@ export default function DetailBar({
 
     const dayPercent = (((dayMonitorTime - dayDownTime) / dayMonitorTime) * 100).toPrecision(4)
 
+    const tooltip = Number.isNaN(Number(dayPercent))
+      ? t('No Data')
+      : [
+          t('percent at date', {
+            percent: dayPercent,
+            date: new Date(dayStart * 1000).toLocaleDateString(),
+          }),
+          dayDownTime > 0
+            ? t('Down for', {
+                duration: moment.preciseDiff(moment(0), moment(dayDownTime * 1000)),
+              })
+            : '',
+        ].join('\n')
+
     uptimePercentBars.push(
-      <Tooltip
-        multiline
+      <div
         key={i}
-        events={{ hover: true, focus: false, touch: true }}
-        label={
-          Number.isNaN(Number(dayPercent)) ? (
-            t('No Data')
-          ) : (
-            <>
-              <div>
-                {t('percent at date', {
-                  percent: dayPercent,
-                  date: new Date(dayStart * 1000).toLocaleDateString(),
-                })}
-              </div>
-              {dayDownTime > 0 && (
-                <div>
-                  {t('Down for', {
-                    duration: moment.preciseDiff(moment(0), moment(dayDownTime * 1000)),
-                  })}
-                </div>
-              )}
-            </>
-          )
-        }
-      >
-        <div
-          style={{
-            height: '20px',
-            width: '7px',
-            background: getColor(dayPercent, false),
-            borderRadius: '2px',
-            marginLeft: '1px',
-            marginRight: '1px',
-          }}
-          onClick={() => {
-            if (dayDownTime > 0) {
-              setModalTitle(
-                t('incidents at', {
-                  name: monitor.name,
-                  date: new Date(dayStart * 1000).toLocaleDateString(),
-                })
-              )
-              setModelContent(
-                <>
-                  {incidentReasons.map((reason, index) => (
-                    <div key={index}>{reason}</div>
-                  ))}
-                </>
-              )
-              setModalOpened(true)
-            }
-          }}
-        />
-      </Tooltip>
+        className={styles.barCell}
+        style={{ background: monitorColor(dayPercent, false) }}
+        title={tooltip}
+        onClick={() => {
+          if (dayDownTime > 0) {
+            setModalTitle(
+              t('incidents at', {
+                name: monitor.name,
+                date: new Date(dayStart * 1000).toLocaleDateString(),
+              })
+            )
+            setModalContent(
+              <>
+                {incidentReasons.map((reason, index) => (
+                  <div key={index} style={{ fontSize: 13, lineHeight: 1.8 }}>
+                    {reason}
+                  </div>
+                ))}
+              </>
+            )
+            setModalOpened(true)
+          }
+        }}
+      />
     )
   }
 
   return (
     <>
       <Modal
-        opened={modalOpened}
+        open={modalOpened}
+        maskClosable
+        typewriter={false}
         onClose={() => setModalOpened(false)}
         title={modalTitle}
-        size={'40em'}
+        footer={null}
       >
-        {modelContent}
+        {modalContent}
       </Modal>
-      <Box
-        style={{
-          display: 'flex',
-          flexWrap: 'nowrap',
-          marginTop: '10px',
-          marginBottom: '5px',
-        }}
-        visibleFrom="540"
+      <div
+        className={styles.barRow}
         ref={barRef}
+        style={{ width: '100%' }}
       >
         {uptimePercentBars.slice(Math.floor(Math.max(9 * 90 - barRect.width, 0) / 9), 90)}
-      </Box>
+      </div>
     </>
   )
 }

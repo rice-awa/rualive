@@ -1,12 +1,17 @@
-import { Text, Tooltip } from '@mantine/core'
 import { MonitorState, MonitorTarget } from '@/types/config'
-import { IconAlertCircle, IconAlertTriangle, IconCircleCheck } from '@tabler/icons-react'
-import DetailChart from './DetailChart'
-import DetailBar from './DetailBar'
-import { getColor } from '@/util/color'
 import { maintenances } from '@/uptime.config'
 import { useTranslation } from 'react-i18next'
+import DetailChart from './DetailChart'
+import DetailBar from './DetailBar'
+import styles from '@/styles/monitor.module.css'
 
+function uptimeMod(percent: number): string {
+  if (percent >= 99) return styles.monUptimeOk
+  if (percent >= 95) return styles.monUptimeWarn
+  return styles.monUptimeDown
+}
+
+/** 单个 HTTP 监控卡（动森面板，原 Mantine MonitorDetail） */
 export default function MonitorDetail({
   monitor,
   state,
@@ -16,45 +21,34 @@ export default function MonitorDetail({
 }) {
   const { t } = useTranslation('common')
 
-  if (!state.latency[monitor.id])
+  // 无数据：卡片仍显示名称，但无条带 / 曲线
+  if (!state.latency[monitor.id]) {
     return (
-      <>
-        <Text mt="sm" fw={700}>
-          {monitor.name}
-        </Text>
-        <Text mt="sm" fw={700}>
-          {t('No data available')}
-        </Text>
-      </>
+      <article className={styles.monCard}>
+        <div className={styles.monHead}>
+          <span className={styles.dot} />
+          <span className={styles.monName}>{monitor.name}</span>
+        </div>
+        <div className={styles.monMeta}>
+          <span className={styles.muted}>{t('No data available')}</span>
+        </div>
+      </article>
     )
+  }
 
-  let statusIcon =
-    state.incident[monitor.id].slice(-1)[0].end === undefined ? (
-      <IconAlertCircle
-        style={{ width: '1.25em', height: '1.25em', color: '#b91c1c', marginRight: '3px' }}
-      />
-    ) : (
-      <IconCircleCheck
-        style={{ width: '1.25em', height: '1.25em', color: '#059669', marginRight: '3px' }}
-      />
-    )
+  const nowDate = new Date()
+  const isDown = state.incident[monitor.id].slice(-1)[0].end === undefined
 
-  // Hide real status icon if monitor is in maintenance
-  const now = new Date()
+  // 维护中则隐藏真实状态，改显示维护态
   const hasMaintenance = maintenances
-    .filter((m) => now >= new Date(m.start) && (!m.end || now <= new Date(m.end)))
+    .filter((m) => nowDate >= new Date(m.start) && (!m.end || nowDate <= new Date(m.end)))
     .find((maintenance) => maintenance.monitors?.includes(monitor.id))
-  if (hasMaintenance)
-    statusIcon = (
-      <IconAlertTriangle
-        style={{
-          width: '1.25em',
-          height: '1.25em',
-          color: '#fab005',
-          marginRight: '3px',
-        }}
-      />
-    )
+
+  const dotMod = hasMaintenance
+    ? styles.dotWarn
+    : isDown
+      ? styles.dotDown
+      : styles.dotUp
 
   let totalTime = Date.now() / 1000 - state.incident[monitor.id][0].start[0]
   let downTime = 0
@@ -62,43 +56,41 @@ export default function MonitorDetail({
     downTime += (incident.end ?? Date.now() / 1000) - incident.start[0]
   }
 
-  const uptimePercent = (((totalTime - downTime) / totalTime) * 100).toPrecision(4)
+  const uptimePercent = Number((((totalTime - downTime) / totalTime) * 100).toPrecision(4))
 
-  // Conditionally render monitor name with or without hyperlink based on monitor.url presence
-  const monitorNameElement = (
-    <Text mt="sm" fw={700} style={{ display: 'inline-flex', alignItems: 'center' }}>
-      {monitor.statusPageLink ? (
-        <a
-          href={monitor.statusPageLink}
-          target="_blank"
-          style={{ display: 'inline-flex', alignItems: 'center', color: 'inherit' }}
-        >
-          {statusIcon} {monitor.name}
-        </a>
-      ) : (
-        <>
-          {statusIcon} {monitor.name}
-        </>
-      )}
-    </Text>
+  const nameEl = monitor.statusPageLink ? (
+    <a
+      className={styles.monName}
+      href={monitor.statusPageLink}
+      target="_blank"
+      rel="noreferrer"
+    >
+      {monitor.name}
+    </a>
+  ) : (
+    <span className={styles.monName}>{monitor.name}</span>
   )
 
   return (
-    <>
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+    <article className={styles.monCard}>
+      <div className={styles.monHead}>
+        <span className={[styles.dot, dotMod].join(' ')} title={hasMaintenance ? t('Scheduled Maintenance') : undefined} />
         {monitor.tooltip ? (
-          <Tooltip label={monitor.tooltip}>{monitorNameElement}</Tooltip>
+          <span title={monitor.tooltip}>{nameEl}</span>
         ) : (
-          monitorNameElement
+          nameEl
         )}
-
-        <Text mt="sm" fw={700} style={{ display: 'inline', color: getColor(uptimePercent, true) }}>
+        <span className={styles.spacer} />
+        <span className={[styles.monUptime, uptimeMod(uptimePercent)].join(' ')}>
           {t('Overall', { percent: uptimePercent })}
-        </Text>
+        </span>
+      </div>
+      <div className={styles.monMeta}>
+        <span className={styles.monUrl}>{monitor.target}</span>
       </div>
 
       <DetailBar monitor={monitor} state={state} />
       {!monitor.hideLatencyChart && <DetailChart monitor={monitor} state={state} />}
-    </>
+    </article>
   )
 }
