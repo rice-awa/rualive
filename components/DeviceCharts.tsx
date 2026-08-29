@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import i18n from '@/util/i18n'
+import { useTranslation } from 'react-i18next'
 import { appLabel, fmtDur } from '@/util/deviceFormat'
 import { fetchWithUsageKey } from '@/util/usageKey'
 import styles from '@/styles/device.module.css'
@@ -52,6 +52,7 @@ export function useUsageData(deviceId: string, days: number, enabled: boolean): 
 
 /** 今日应用排行水平条形图（prototype appBars） */
 export function AppBars({ data, top = 10 }: { data: UsageResponse | null; top?: number }) {
+  const { t } = useTranslation('common')
   const byApp = data?.daily[data.daily.length - 1]?.by_app
   if (!byApp) return null
   const rows = Object.entries(byApp).sort((a, b) => b[1] - a[1]).slice(0, top)
@@ -86,6 +87,7 @@ export function HourlyChart({
   now: number
   compact?: boolean
 }) {
+  const { t } = useTranslation('common')
   if (!hourly) return null
   const vals = new Array(24).fill(0)
   for (const h of hourly) if (h.hour >= 0 && h.hour < 24) vals[h.hour] = h.active_seconds
@@ -96,7 +98,7 @@ export function HourlyChart({
       key={h}
       className={[styles.hcol, h === cur ? styles.hcolNow : ''].join(' ')}
       style={{ height: `${Math.max(2, (v / max) * 100)}%` }}
-      title={i18n.t('device.barTip', { hour: String(h).padStart(2, '0'), dur: fmtDur(v) })}
+      title={t('device.barTip', { hour: String(h).padStart(2, '0'), dur: fmtDur(v) })}
     />
   ))
   return (
@@ -115,6 +117,7 @@ export function HourlyChart({
 
 /** 近 n 天每日活跃柱状图（prototype dailyChart），含日均 */
 export function DailyChart({ data, days }: { data: UsageResponse | null; days: number }) {
+  const { t } = useTranslation('common')
   const daily = data?.daily ?? []
   if (!daily.length) return null
   const max = Math.max(...daily.map((x) => x.total_seconds), 1)
@@ -140,13 +143,14 @@ export function DailyChart({ data, days }: { data: UsageResponse | null; days: n
     <div className={styles.dchart}>
       <div className={styles.dcols}>{cols}</div>
       <div className={styles.dlabels}>{labels}</div>
-      <div className={styles.dchartAvg}>{i18n.t('device.avgDaily', { dur: fmtDur(avg) })}</div>
+      <div className={styles.dchartAvg}>{t('device.avgDaily', { dur: fmtDur(avg) })}</div>
     </div>
   )
 }
 
 /** 迷你 7 天趋势折线（prototype sparkline），日记流横幅用 */
 export function Sparkline({ data }: { data: UsageResponse | null }) {
+  const { t } = useTranslation('common')
   const vals = (data?.daily ?? []).map((x) => x.total_seconds)
   if (!vals.length) return null
   const max = Math.max(...vals, 1)
@@ -169,12 +173,13 @@ export function Sparkline({ data }: { data: UsageResponse | null }) {
 
 /** 数据口径说明折叠（prototype collapseNote），仅 zh 语系可见完整语义 */
 export function UsageNotes() {
+  const { t } = useTranslation('common')
   return (
     <details className={styles.collapseNote}>
-      <summary>📏 {i18n.t('device.notes')}</summary>
-      <span>{i18n.t('device.note1')}</span>
+      <summary>📏 {t('device.notes')}</summary>
+      <span>{t('device.note1')}</span>
       <br />
-      <span>{i18n.t('device.note2')}</span>
+      <span>{t('device.note2')}</span>
     </details>
   )
 }

@@ -80,6 +80,15 @@ const workerConfig: WorkerConfig = {
   // 只能作为 Pages 运行时 secret 注入（见 deploy.tf 的 env_vars）
   devices: [
     {
+      // 主设备（主页 hero 展示）：当前主力机 —— Linux 笔记本
+      id: 'riceawa-laptop',
+      name: 'Riceawa 的笔记本',
+      os: 'linux',
+      offlineAfterSeconds: 90,
+      usageTracking: true,
+      publicWindow: true,
+    },
+    {
       id: 'riceawa-desktop',
       name: 'Riceawa 的台式机',
       os: 'windows',
@@ -89,14 +98,6 @@ const workerConfig: WorkerConfig = {
       usageTracking: true,
       // 当前窗口标题默认需 USAGE_API_KEY 解锁
       publicWindow: false,
-    },
-    {
-      id: 'riceawa-laptop',
-      name: 'Riceawa 的笔记本',
-      os: 'linux',
-      offlineAfterSeconds: 90,
-      usageTracking: true,
-      publicWindow: true,
     },
   ],
   notification: {

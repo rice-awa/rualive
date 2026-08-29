@@ -1,4 +1,4 @@
-import i18n from '@/util/i18n'
+import { useTranslation } from 'react-i18next'
 import { appLabel } from '@/util/deviceFormat'
 import { DevicePublicView } from '@/worker/src/deviceStore'
 import styles from '@/styles/device.module.css'
@@ -18,8 +18,9 @@ export default function DeviceWindowLine({
   hasKey: boolean
   onUnlock: () => void
 }) {
+  const { t } = useTranslation('common')
   if (!device.has_window) {
-    return <div className={[styles.winLine, styles.muted].join(' ')}>{i18n.t('device.noSession')}</div>
+    return <div className={[styles.winLine, styles.muted].join(' ')}>{t('device.noSession')}</div>
   }
   if (hasKey || device.public_window) {
     return (
@@ -27,7 +28,7 @@ export default function DeviceWindowLine({
         💬 <b>{appLabel(device.last_app)}</b> · {device.last_title}
         {device.public_window && !hasKey && (
           <span className={styles.chip} title="publicWindow: true">
-            {i18n.t('device.publicChip')}
+            {t('device.publicChip')}
           </span>
         )}
       </div>
@@ -35,7 +36,7 @@ export default function DeviceWindowLine({
   }
   return (
     <button type="button" className={styles.lockPill} onClick={onUnlock}>
-      {i18n.t('device.windowLocked')}
+      {t('device.windowLocked')}
     </button>
   )
 }

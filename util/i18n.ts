@@ -16,6 +16,9 @@ i18n
       'zh-TW': { common: zhTW },
     },
     fallbackLng: 'en',
+    // 资源只挂 common 这一个 namespace；工具模块里的命令式 i18n.t()（如 util/deviceFormat.ts）
+    // 不带 ns 调用，必须显式指定默认 ns，否则查不到键会原样返回键名
+    defaultNS: 'common',
     interpolation: {
       escapeValue: false,
     },

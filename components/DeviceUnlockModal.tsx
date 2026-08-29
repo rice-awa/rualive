@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { Button, Input, Modal, Typewriter } from 'animal-island-ui'
-import i18n from '@/util/i18n'
+import { useTranslation } from 'react-i18next'
 import styles from '@/styles/device.module.css'
 
 type Props = {
@@ -16,6 +16,7 @@ type Props = {
  * 401 显示错误 + 抖动（不会落盘）。与 status 接口不同，usage 接口对错误密钥明确返回 401。
  */
 export default function DeviceUnlockModal({ open, onClose, onUnlocked }: Props) {
+  const { t } = useTranslation('common')
   const [key, setKey] = useState('')
   const [err, setErr] = useState(false)
   /** 递增以强制重挂载内容区，重播 shake 动画 */
@@ -55,14 +56,14 @@ export default function DeviceUnlockModal({ open, onClose, onUnlocked }: Props) 
         if (!busyRef.current) onClose()
       }}
       title={
-        <Typewriter trigger={openCount}>{i18n.t('device.unlockTitle')}</Typewriter>
+        <Typewriter trigger={openCount}>{t('device.unlockTitle')}</Typewriter>
       }
       footer={null}
     >
       <div key={shakeKey} className={err ? styles.shake : undefined}>
         <Input
           type="password"
-          placeholder={i18n.t('device.unlockPlaceholder')}
+          placeholder={t('device.unlockPlaceholder')}
           autoComplete="off"
           value={key}
           size="middle"
@@ -74,14 +75,14 @@ export default function DeviceUnlockModal({ open, onClose, onUnlocked }: Props) 
             if (e.key === 'Enter') submit()
           }}
         />
-        {err && <div className={styles.modalErr}>{i18n.t('device.unlockError')}</div>}
-        <div className={styles.modalHint}>{i18n.t('device.unlockHint')}</div>
+        {err && <div className={styles.modalErr}>{t('device.unlockError')}</div>}
+        <div className={styles.modalHint}>{t('device.unlockHint')}</div>
         <div className={styles.modalBtns}>
           <Button type="default" size="small" onClick={() => !busyRef.current && onClose()}>
-            {i18n.t('device.unlockCancel')}
+            {t('device.unlockCancel')}
           </Button>
           <Button type="primary" size="small" onClick={submit}>
-            {i18n.t('device.unlockSubmit')}
+            {t('device.unlockSubmit')}
           </Button>
         </div>
       </div>

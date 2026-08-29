@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import i18n from '@/util/i18n'
+import { useTranslation } from 'react-i18next'
 import { appLabel, deviceStateOf, fmtDur, fmtRel, stateText } from '@/util/deviceFormat'
 import { DevicePublicView } from '@/worker/src/deviceStore'
 import DeviceCat from '@/components/DeviceCat'
@@ -21,6 +21,7 @@ export default function DeviceBanner({
   hasKey: boolean
   onUnlock: () => void
 }) {
+  const { t } = useTranslation('common')
   const [expanded, setExpanded] = useState(false)
   const state = deviceStateOf(device, now)
   const mod =
@@ -30,17 +31,17 @@ export default function DeviceBanner({
 
   let bubble: React.ReactNode
   if (!device.has_window) {
-    bubble = <div className={[styles.bubble, styles.muted].join(' ')}>{i18n.t('device.headless')}</div>
+    bubble = <div className={[styles.bubble, styles.muted].join(' ')}>{t('device.headless')}</div>
   } else if (hasKey || device.public_window) {
     bubble = (
       <div className={styles.bubble}>
-        {i18n.t('device.usingApp')} <b>{appLabel(device.last_app)}</b>：{device.last_title}
+        {t('device.usingApp')} <b>{appLabel(device.last_app)}</b>：{device.last_title}
       </div>
     )
   } else {
     bubble = (
       <div className={[styles.bubble, styles.bubbleLocked].join(' ')} onClick={onUnlock} role="button">
-        {i18n.t('device.bubbleLocked')}
+        {t('device.bubbleLocked')}
       </div>
     )
   }
@@ -58,15 +59,15 @@ export default function DeviceBanner({
         {bubble}
         <div className={styles.bannerMeta}>
           <span>
-            {i18n.t('device.lastSeen')} <b>{fmtRel(now, device.last_seen)}</b>
+            {t('device.lastSeen')} <b>{fmtRel(now, device.last_seen)}</b>
           </span>
           {device.usage_tracking ? (
             <>
               <span>
-                {i18n.t('device.todayActive')} <b>{fmtDur(device.today_total_seconds)}</b>
+                {t('device.todayActive')} <b>{fmtDur(device.today_total_seconds)}</b>
               </span>
               <span>
-                {i18n.t('device.trend7')} <Sparkline data={usage} />
+                {t('device.trend7')} <Sparkline data={usage} />
               </span>
               <button
                 type="button"
@@ -74,11 +75,11 @@ export default function DeviceBanner({
                 style={{ padding: '3px 12px', fontSize: 12.5 }}
                 onClick={() => setExpanded(!expanded)}
               >
-                {expanded ? '收起 ▴' : `${i18n.t('device.lockPanelTitle')} ▾`}
+                {expanded ? '收起 ▴' : `${t('device.lockPanelTitle')} ▾`}
               </button>
             </>
           ) : (
-            <span>{i18n.t('device.usageDisabled')}</span>
+            <span>{t('device.usageDisabled')}</span>
           )}
         </div>
         {expanded &&
@@ -87,13 +88,13 @@ export default function DeviceBanner({
               <div className={styles.bpanelRow}>
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink-soft)', marginBottom: 6 }}>
-                    {i18n.t('device.hourly24Today')}
+                    {t('device.hourly24Today')}
                   </div>
                   <HourlyChart hourly={usage?.hourly_today} now={now} compact />
                 </div>
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink-soft)', marginBottom: 6 }}>
-                    {i18n.t('device.appsTop3')}
+                    {t('device.appsTop3')}
                   </div>
                   <AppBars data={usage} top={3} />
                 </div>
@@ -102,10 +103,10 @@ export default function DeviceBanner({
           ) : (
             <div className={styles.bpanel}>
               <div className={styles.bpanelLock}>
-                {i18n.t('device.usageLocked')}
+                {t('device.usageLocked')}
                 <span className={styles.spacer} />
                 <button type="button" className={styles.tab} style={{ padding: '3px 12px', fontSize: 12.5 }} onClick={onUnlock}>
-                  {i18n.t('device.unlock')}
+                  {t('device.unlock')}
                 </button>
               </div>
             </div>

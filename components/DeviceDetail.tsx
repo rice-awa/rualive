@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import i18n from '@/util/i18n'
+import { useTranslation } from 'react-i18next'
 import { deviceStateOf, fmtDur, fmtRel, stateText } from '@/util/deviceFormat'
 import { DevicePublicView } from '@/worker/src/deviceStore'
 import DeviceCat from '@/components/DeviceCat'
@@ -29,6 +29,7 @@ export default function DeviceDetail({
   onUnlock: () => void
   onLock: () => void
 }) {
+  const { t } = useTranslation('common')
   const [tab, setTab] = useState<Tab>('today')
   const state = deviceStateOf(device, now)
   const days = tab === 'today' ? 1 : tab === '7d' ? 7 : 30
@@ -49,9 +50,9 @@ export default function DeviceDetail({
     body = (
       <div className={[styles.panel, styles.lockPanel].join(' ')}>
         <div className={styles.big}>📴</div>
-        <div style={{ fontWeight: 800 }}>{i18n.t('device.usageDisabledDetail')}</div>
+        <div style={{ fontWeight: 800 }}>{t('device.usageDisabledDetail')}</div>
         <div className={styles.muted} style={{ fontSize: 12.5 }}>
-          {i18n.t('device.usageDisabledHint')}
+          {t('device.usageDisabledHint')}
         </div>
       </div>
     )
@@ -60,9 +61,9 @@ export default function DeviceDetail({
       <div className={styles.panel}>
         <div className={styles.lockPanel}>
           <div className={styles.big}>🔒</div>
-          <div style={{ fontWeight: 800 }}>{i18n.t('device.usageLocked')}</div>
+          <div style={{ fontWeight: 800 }}>{t('device.usageLocked')}</div>
           <button type="button" className={styles.tab} onClick={onUnlock}>
-            {i18n.t('device.unlock')}
+            {t('device.unlock')}
           </button>
         </div>
       </div>
@@ -72,11 +73,11 @@ export default function DeviceDetail({
       <>
         <div className={styles.chartGrid}>
           <div className={styles.panel}>
-            <h3 className={styles.panelTitle}>{i18n.t('device.appsTop10')}</h3>
+            <h3 className={styles.panelTitle}>{t('device.appsTop10')}</h3>
             <AppBars data={usage} />
           </div>
           <div className={styles.panel}>
-            <h3 className={styles.panelTitle}>{i18n.t('device.hourly24')}</h3>
+            <h3 className={styles.panelTitle}>{t('device.hourly24')}</h3>
             <HourlyChart hourly={usage?.hourly_today} now={now} />
           </div>
         </div>
@@ -88,7 +89,7 @@ export default function DeviceDetail({
       <>
         <div className={styles.panel}>
           <h3 className={styles.panelTitle}>
-            {tab === '7d' ? i18n.t('device.trend7') : i18n.t('device.trend30')}
+            {tab === '7d' ? t('device.trend7') : t('device.trend30')}
           </h3>
           <DailyChart data={usage} days={days} />
         </div>
@@ -101,7 +102,7 @@ export default function DeviceDetail({
     <div className={styles.detail}>
       <div className={styles.detailInner}>
         <button type="button" className={[styles.tab, styles.btnGhost].join(' ')} onClick={onClose}>
-          {i18n.t('device.back')}
+          {t('device.back')}
         </button>
         <div className={styles.detailHead}>
           <div className={styles.detailCat}>
@@ -112,27 +113,27 @@ export default function DeviceDetail({
               {device.device_name} {os}
             </h2>
             <div className={styles.detailSub}>
-              <b>{stateText(state)}</b> · {i18n.t('device.lastSeen')}{' '}
+              <b>{stateText(state)}</b> · {t('device.lastSeen')}{' '}
               <b>{fmtRel(now, device.last_seen)}</b>
               {device.usage_tracking ? (
                 <>
                   {' '}
-                  · {i18n.t('device.todayActive')}{' '}
+                  · {t('device.todayActive')}{' '}
                   <b>{fmtDur(device.today_total_seconds)}</b>
                 </>
               ) : (
-                <> · {i18n.t('device.usageDisabled')}</>
+                <> · {t('device.usageDisabled')}</>
               )}
             </div>
           </div>
           <span className={styles.spacer} />
           {hasKey ? (
             <button type="button" className={styles.tab} onClick={onLock}>
-              {i18n.t('device.unlockedBtn')}
+              {t('device.unlockedBtn')}
             </button>
           ) : (
             <button type="button" className={[styles.tab, styles.btnOrange].join(' ')} onClick={onUnlock}>
-              {i18n.t('device.unlockShort')}
+              {t('device.unlockShort')}
             </button>
           )}
         </div>
@@ -143,18 +144,18 @@ export default function DeviceDetail({
         )}
         {device.usage_tracking && (
           <div className={styles.tabs}>
-            {(['today', '7d', '30d'] as Tab[]).map((t) => (
+            {(['today', '7d', '30d'] as Tab[]).map((day) => (
               <button
-                key={t}
+                key={day}
                 type="button"
-                className={[styles.tab, tab === t ? styles.tabOn : ''].join(' ')}
-                onClick={() => setTab(t)}
+                className={[styles.tab, tab === day ? styles.tabOn : ''].join(' ')}
+                onClick={() => setTab(day)}
               >
-                {t === 'today'
-                  ? i18n.t('device.tab.today')
-                  : t === '7d'
-                    ? i18n.t('device.tab.sevenDays')
-                    : i18n.t('device.tab.thirtyDays')}
+                {day === 'today'
+                  ? t('device.tab.today')
+                  : day === '7d'
+                    ? t('device.tab.sevenDays')
+                    : t('device.tab.thirtyDays')}
               </button>
             ))}
           </div>

@@ -1,5 +1,5 @@
 import { Typewriter } from 'animal-island-ui'
-import i18n from '@/util/i18n'
+import { useTranslation } from 'react-i18next'
 import { deviceStateOf, fmtDur, fmtRel, stateText } from '@/util/deviceFormat'
 import { DevicePublicView } from '@/worker/src/deviceStore'
 import DeviceCat from '@/components/DeviceCat'
@@ -22,6 +22,7 @@ export default function DeviceHero({
   hasKey: boolean
   onUnlock: () => void
 }) {
+  const { t } = useTranslation('common')
   const state = deviceStateOf(device, now)
   // 仅主设备开启统计且已解锁时才拉取逐小时分布；锁定态不发请求（PRD M2 验收）
   const usage = useUsageData(device.device_id, 1, hasKey && device.usage_tracking)
@@ -38,10 +39,10 @@ export default function DeviceHero({
             <Typewriter trigger={`${device.device_id}:${state}`}>{stateText(state)}</Typewriter>
           </div>
           <div className={styles.heroName}>
-            {device.device_name} {os} <span className={styles.chip}>{i18n.t('device.primary')}</span>
+            {device.device_name} {os} <span className={styles.chip}>{t('device.primary')}</span>
           </div>
           <div className={styles.heroSub}>
-            {i18n.t('device.lastSeen')} <b>{fmtRel(now, device.last_seen)}</b>
+            {t('device.lastSeen')} <b>{fmtRel(now, device.last_seen)}</b>
           </div>
           <div className={styles.heroWin}>
             <DeviceWindowLine device={device} hasKey={hasKey} onUnlock={onUnlock} />
@@ -50,15 +51,15 @@ export default function DeviceHero({
       </div>
       <div className={styles.heroStats}>
         <div className={styles.statBox}>
-          <div className={styles.statLbl}>{i18n.t('device.todayTotal')}</div>
+          <div className={styles.statLbl}>{t('device.todayTotal')}</div>
           <div className={styles.statVal}>
             {device.usage_tracking ? fmtDur(device.today_total_seconds) : '—'}
           </div>
         </div>
         <div className={styles.statBox}>
           <div className={styles.statLbl}>
-            {i18n.t('device.hourly24Today')}
-            {hasKey || !device.usage_tracking ? '' : '（🔒 ' + i18n.t('device.lockPanelTitle') + '）'}
+            {t('device.hourly24Today')}
+            {hasKey || !device.usage_tracking ? '' : '（🔒 ' + t('device.lockPanelTitle') + '）'}
           </div>
           {device.usage_tracking ? (
             hasKey ? (
@@ -68,13 +69,13 @@ export default function DeviceHero({
             ) : (
               <div className={styles.lockPanel} style={{ padding: '12px 0 4px' }}>
                 <button type="button" className={styles.tab} onClick={onUnlock}>
-                  {i18n.t('device.lockHourly')}
+                  {t('device.lockHourly')}
                 </button>
               </div>
             )
           ) : (
             <div className={styles.muted} style={{ fontSize: 12, fontWeight: 700, paddingTop: 14 }}>
-              {i18n.t('device.usageDisabled')}
+              {t('device.usageDisabled')}
             </div>
           )}
         </div>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import i18n from '@/util/i18n'
+import { useTranslation } from 'react-i18next'
 import { fmtClock } from '@/util/deviceFormat'
 import { useDeviceStatus } from '@/util/useDeviceStatus'
 import DeviceHero from '@/components/DeviceHero'
@@ -19,6 +19,7 @@ type View = 'home' | 'feed'
  * - 时钟 pill + 视图切换 + 解锁弹窗 + toast 编排
  */
 export default function DeviceSection() {
+  const { t } = useTranslation('common')
   const { devices, now, hasKey, unlock, lock } = useDeviceStatus()
   const [view, setView] = useState<View>('home')
   const [detailId, setDetailId] = useState<string | null>(null)
@@ -68,11 +69,11 @@ export default function DeviceSection() {
   const onUnlocked = (key: string) => {
     unlock(key)
     setModalOpen(false)
-    showToast(i18n.t('device.unlockedToast'))
+    showToast(t('device.unlockedToast'))
   }
   const onLocked = () => {
     lock()
-    showToast(i18n.t('device.lockedToast'))
+    showToast(t('device.lockedToast'))
   }
 
   if (!devices.length) return null
@@ -83,8 +84,8 @@ export default function DeviceSection() {
     <section className={styles.section}>
       <div className={styles.head}>
         <h2>
-          {i18n.t('device.section.title')}
-          <span className={styles.sub}>{i18n.t('device.section.sub')}</span>
+          {t('device.section.title')}
+          <span className={styles.sub}>{t('device.section.sub')}</span>
         </h2>
         <div className={styles.headRight}>
           <div className={styles.viewToggle}>
@@ -93,14 +94,14 @@ export default function DeviceSection() {
               className={[styles.vtBtn, view === 'home' ? styles.vtBtnOn : ''].join(' ')}
               onClick={() => setView('home')}
             >
-              {i18n.t('device.view.home')}
+              {t('device.view.home')}
             </button>
             <button
               type="button"
               className={[styles.vtBtn, view === 'feed' ? styles.vtBtnOn : ''].join(' ')}
               onClick={() => setView('feed')}
             >
-              {i18n.t('device.view.diary')}
+              {t('device.view.diary')}
             </button>
           </div>
           <div className={styles.clockPill}>{fmtClock(now)}</div>
@@ -111,8 +112,8 @@ export default function DeviceSection() {
         <>
           <DeviceHero device={primary} now={now} hasKey={hasKey} onUnlock={() => setModalOpen(true)} />
           <div className={[styles.areaHead, styles.areaHeadSmall].join(' ')}>
-            <h3>{i18n.t('device.allDevices')}</h3>
-            <span className={styles.sub}>{i18n.t('device.allDevices.sub')}</span>
+            <h3>{t('device.allDevices')}</h3>
+            <span className={styles.sub}>{t('device.allDevices.sub')}</span>
           </div>
           <div className={styles.cardRow}>
             {devices.map((d) => (
@@ -130,8 +131,8 @@ export default function DeviceSection() {
       ) : (
         <>
           <div className={styles.areaHead}>
-            <h3>{i18n.t('device.feed.title')}</h3>
-            <span className={styles.sub}>{i18n.t('device.feed.sub')}</span>
+            <h3>{t('device.feed.title')}</h3>
+            <span className={styles.sub}>{t('device.feed.sub')}</span>
           </div>
           {devices.map((d) => (
             <DeviceBanner
