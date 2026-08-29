@@ -106,5 +106,14 @@
   "incidents.title": "📜 历史故障",
   "incidents.sub": "按月份查看历史故障与维护记录",
   "incidents.filter": "筛选监控",
-  "footer.default": "UptimeFlare × 似了喵？ · Powered by <a href=\"https://github.com/lyc8503/UptimeFlare\" target=\"_blank\" rel=\"noreferrer\">UptimeFlare</a>"
+  "mon.quick.up": "✓ 在线",
+  "mon.quick.down": "✗ 离线",
+  "mon.quick.maint": "🛠 维护中",
+  "mon.quick.latency": "⚡ 响应时间",
+  "mon.quick.uptime": "📊 总可用率",
+  "mon.quick.since": "已持续 {{duration}}",
+  "mon.dur.days": "{{n}} 天",
+  "mon.dur.hours": "{{n}} 小时",
+  "mon.dur.minutes": "{{n}} 分钟",
+  "footer.default": "UptimeFlare × 似了喵？ · 项目地址 <a href=\"https://github.com/rice-awa/UptimeFlare\" target=\"_blank\" rel=\"noreferrer\">UptimeFlare</a> · 原项目 <a href=\"https://github.com/lyc8503/UptimeFlare\" target=\"_blank\" rel=\"noreferrer\">UptimeFlare (lyc8503)</a>"
 }

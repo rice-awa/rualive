@@ -2,11 +2,14 @@ import { MonitorState, MonitorTarget } from '@/types/config'
 import { monitorColor } from '@/util/monitorFormat'
 import { Modal } from 'animal-island-ui'
 import { useResizeObserver } from '@mantine/hooks'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import styles from '@/styles/monitor.module.css'
 const moment = require('moment')
 require('moment-precise-range-plugin')
+
+/** 条带格 hover 浮窗数据：内容 + 格子在视口中的水平中心/顶部 */
+type BarTip = { content: string; cellX: number; cellTop: number }
 
 /**
  * 近 90 天可用率条带（动森风，原 Mantine DetailBar）：
@@ -24,6 +27,19 @@ export default function DetailBar({
   const [modalOpened, setModalOpened] = useState(false)
   const [modalTitle, setModalTitle] = useState('')
   const [modalContent, setModalContent] = useState(<div />)
+  const [tip, setTip] = useState<null | BarTip>(null)
+
+  // 页面滚动 / 窗口缩放时隐藏浮窗，避免它脱离对应格子
+  useEffect(() => {
+    if (!tip) return
+    const hide = () => setTip(null)
+    window.addEventListener('scroll', hide, true)
+    window.addEventListener('resize', hide)
+    return () => {
+      window.removeEventListener('scroll', hide, true)
+      window.removeEventListener('resize', hide)
+    }
+  }, [tip])
 
   const overlapLen = (x1: number, x2: number, y1: number, y2: number) => {
     return Math.max(0, Math.min(x2, y2) - Math.max(x1, y1))
@@ -97,7 +113,11 @@ export default function DetailBar({
         key={i}
         className={styles.barCell}
         style={{ background: monitorColor(dayPercent, false) }}
-        title={tooltip}
+        onMouseEnter={(e) => {
+          const r = e.currentTarget.getBoundingClientRect()
+          setTip({ content: tooltip, cellX: r.left + r.width / 2, cellTop: r.top })
+        }}
+        onMouseLeave={() => setTip(null)}
         onClick={() => {
           if (dayDownTime > 0) {
             setModalTitle(
@@ -122,6 +142,16 @@ export default function DetailBar({
     )
   }
 
+  // 浮窗水平居中于格子上方，并夹紧在视口内（浮窗 max-width 240，半宽留 125 保险）
+  let tipLeft = 0
+  let tipTop = 0
+  if (tip) {
+    const clamp = 125
+    const vw = typeof window !== 'undefined' ? window.innerWidth : 800
+    tipLeft = Math.max(clamp, Math.min(tip.cellX, vw - clamp))
+    tipTop = tip.cellTop - 8
+  }
+
   return (
     <>
       <Modal
@@ -141,6 +171,11 @@ export default function DetailBar({
       >
         {uptimePercentBars.slice(Math.floor(Math.max(9 * 90 - barRect.width, 0) / 9), 90)}
       </div>
+      {tip && (
+        <div className={styles.barTip} style={{ left: tipLeft, top: tipTop }}>
+          {tip.content}
+        </div>
+      )}
     </>
   )
 }

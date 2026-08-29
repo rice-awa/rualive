@@ -128,12 +128,50 @@
 
 /* ============ 监控卡片（原 Mantine Card，迁移为动森面板） ============ */
 .monCard {
+  position: relative;
   background: var(--paper-2);
   border: 3px solid var(--ink);
   border-radius: 20px;
   padding: 14px 18px;
   box-shadow: 0 5px 0 rgba(74, 59, 44, 0.22);
   margin-bottom: 14px;
+  transition: transform 0.12s;
+}
+.monCard:hover {
+  transform: translateY(-3px);
+}
+
+/* 监控卡 hover 快捷详情弹窗（右上角浮出，动森纸片） */
+.monQuick {
+  position: absolute;
+  right: 12px;
+  bottom: calc(100% + 8px);
+  z-index: 30;
+  background: #fffef7;
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ink);
+  box-shadow: 0 4px 0 rgba(74, 59, 44, 0.22);
+  line-height: 1.7;
+  min-width: 175px;
+  max-width: 280px;
+  display: none;
+}
+.monCard:hover .monQuick {
+  display: block;
+}
+.monQuickRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  white-space: nowrap;
+}
+.monQuickVal {
+  color: var(--leaf);
 }
 
 .monHead {
@@ -224,6 +262,25 @@ a.monName:hover {
 }
 .barCell:hover {
   filter: brightness(0.85);
+}
+
+/* 可用率条带格 hover 浮窗（动森纸片，fixed 定位随格子，pre-line 换两行） */
+.barTip {
+  position: fixed;
+  z-index: 80;
+  background: #fffef7;
+  border: 3px solid var(--ink);
+  border-radius: 12px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ink);
+  box-shadow: 0 4px 0 rgba(74, 59, 44, 0.22);
+  white-space: pre-line;
+  line-height: 1.5;
+  max-width: 240px;
+  pointer-events: none;
+  transform: translate(-50%, -100%);
 }
 
 /* 延迟曲线（手绘 SVG，动森色） */

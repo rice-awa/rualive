@@ -58,6 +58,35 @@ export default function MonitorDetail({
 
   const uptimePercent = Number((((totalTime - downTime) / totalTime) * 100).toPrecision(4))
 
+  // —— hover 快捷详情 ——
+  // 最新一条响应时间
+  const latArr = state.latency[monitor.id]
+  const lastPing = latArr && latArr.length ? Number(latArr[latArr.length - 1].ping) : NaN
+
+  // 当前状态已持续时长（离线=当前 incident 起点；在线=最近一次恢复时间；维护中不显示）
+  let sinceStr = ''
+  if (!hasMaintenance) {
+    const last = state.incident[monitor.id].slice(-1)[0]
+    const sinceTs = isDown
+      ? last.start[0]
+      : last.end ?? state.incident[monitor.id][0].start[0]
+    const sec = Math.max(0, Math.round(Date.now() / 1000 - sinceTs))
+    const d = Math.floor(sec / 86400)
+    const h = Math.floor((sec % 86400) / 3600)
+    const m = Math.floor((sec % 3600) / 60)
+    const parts: string[] = []
+    if (d > 0) parts.push(t('mon.dur.days', { n: d }))
+    if (h > 0) parts.push(t('mon.dur.hours', { n: h }))
+    if (d === 0 && h === 0 && m > 0) parts.push(t('mon.dur.minutes', { n: m }))
+    if (parts.length) sinceStr = t('mon.quick.since', { duration: parts.join(' ') })
+  }
+
+  const statusText = hasMaintenance
+    ? t('mon.quick.maint')
+    : isDown
+      ? t('mon.quick.down')
+      : t('mon.quick.up')
+
   const nameEl = monitor.statusPageLink ? (
     <a
       className={styles.monName}
@@ -91,6 +120,23 @@ export default function MonitorDetail({
 
       <DetailBar monitor={monitor} state={state} />
       {!monitor.hideLatencyChart && <DetailChart monitor={monitor} state={state} />}
+
+      <div className={styles.monQuick}>
+        <div className={styles.monQuickRow}>
+          <span>{statusText}</span>
+          {sinceStr && <span className={styles.monQuickVal}>{sinceStr}</span>}
+        </div>
+        <div className={styles.monQuickRow}>
+          <span>{t('mon.quick.latency')}</span>
+          <span className={styles.monQuickVal}>
+            {Number.isNaN(lastPing) ? t('No Data') : `${lastPing} ms`}
+          </span>
+        </div>
+        <div className={styles.monQuickRow}>
+          <span>{t('mon.quick.uptime')}</span>
+          <span className={styles.monQuickVal}>{uptimePercent}%</span>
+        </div>
+      </div>
     </article>
   )
 }

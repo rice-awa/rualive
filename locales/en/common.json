@@ -106,5 +106,14 @@
   "incidents.title": "📜 History",
   "incidents.sub": "Browse historical incidents & maintenance by month",
   "incidents.filter": "Filter by monitor",
-  "footer.default": "UptimeFlare × Si Le Miao? · Powered by <a href=\"https://github.com/lyc8503/UptimeFlare\" target=\"_blank\" rel=\"noreferrer\">UptimeFlare</a>"
+  "mon.quick.up": "✓ Online",
+  "mon.quick.down": "✗ Offline",
+  "mon.quick.maint": "🛠 Maintenance",
+  "mon.quick.latency": "⚡ Latency",
+  "mon.quick.uptime": "📊 Overall uptime",
+  "mon.quick.since": "for {{duration}}",
+  "mon.dur.days": "{{n}}d",
+  "mon.dur.hours": "{{n}}h",
+  "mon.dur.minutes": "{{n}}m",
+  "footer.default": "UptimeFlare × Si Le Miao? · Repo <a href=\"https://github.com/rice-awa/UptimeFlare\" target=\"_blank\" rel=\"noreferrer\">UptimeFlare</a> · Original <a href=\"https://github.com/lyc8503/UptimeFlare\" target=\"_blank\" rel=\"noreferrer\">UptimeFlare (lyc8503)</a>"
 }

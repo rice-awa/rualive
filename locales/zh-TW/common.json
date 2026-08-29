@@ -106,5 +106,14 @@
   "incidents.title": "📜 歷來事件",
   "incidents.sub": "依月份檢視歷來事件與維護記錄",
   "incidents.filter": "篩選站點",
-  "footer.default": "UptimeFlare × 似了喵？ · Powered by <a href=\"https://github.com/lyc8503/UptimeFlare\" target=\"_blank\" rel=\"noreferrer\">UptimeFlare</a>"
+  "mon.quick.up": "✓ 線上",
+  "mon.quick.down": "✗ 離線",
+  "mon.quick.maint": "🛠 維護中",
+  "mon.quick.latency": "⚡ 回應時間",
+  "mon.quick.uptime": "📊 總可用率",
+  "mon.quick.since": "已持續 {{duration}}",
+  "mon.dur.days": "{{n}} 天",
+  "mon.dur.hours": "{{n}} 小時",
+  "mon.dur.minutes": "{{n}} 分鐘",
+  "footer.default": "UptimeFlare × 似了喵？ · 專案網址 <a href=\"https://github.com/rice-awa/UptimeFlare\" target=\"_blank\" rel=\"noreferrer\">UptimeFlare</a> · 原專案 <a href=\"https://github.com/lyc8503/UptimeFlare\" target=\"_blank\" rel=\"noreferrer\">UptimeFlare (lyc8503)</a>"
 }
