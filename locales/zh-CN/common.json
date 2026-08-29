@@ -87,6 +87,8 @@
   "device.note2": "长期聚合只到应用（app）粒度；窗口标题仅保留 14 天原始采样",
   "device.unlockTitle": "喵？想看本喵的详细数据？请出示密钥喵…",
   "device.unlockPlaceholder": "USAGE_API_KEY",
+  "device.showKey": "显示密钥",
+  "device.hideKey": "隐藏密钥",
   "device.unlockCancel": "先不了",
   "device.unlockSubmit": "解锁",
   "device.unlockError": "密钥不对喵…（401，不会落盘）",

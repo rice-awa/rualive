@@ -18,6 +18,7 @@ type Props = {
 export default function DeviceUnlockModal({ open, onClose, onUnlocked }: Props) {
   const { t } = useTranslation('common')
   const [key, setKey] = useState('')
+  const [showKey, setShowKey] = useState(false)
   const [err, setErr] = useState(false)
   /** 递增以强制重挂载内容区，重播 shake 动画 */
   const [shakeKey, setShakeKey] = useState(0)
@@ -52,6 +53,10 @@ export default function DeviceUnlockModal({ open, onClose, onUnlocked }: Props) 
     <Modal
       open={open}
       maskClosable
+      // UI 库 Modal 的 typewriter 默认会对 body 也做逐字 reveal：
+      // 小字/按钮要等打字机打完才完整出现，且 body 随文字变宽把输入框（width:100%）拉长。
+      // 关闭它，只保留 title 里的 Typewriter。
+      typewriter={false}
       onClose={() => {
         if (!busyRef.current) onClose()
       }}
@@ -62,11 +67,22 @@ export default function DeviceUnlockModal({ open, onClose, onUnlocked }: Props) 
     >
       <div key={shakeKey} className={err ? styles.shake : undefined}>
         <Input
-          type="password"
+          type={showKey ? 'text' : 'password'}
           placeholder={t('device.unlockPlaceholder')}
           autoComplete="off"
           value={key}
           size="middle"
+          suffix={
+            <button
+              type="button"
+              className={styles.eyeBtn}
+              title={showKey ? t('device.hideKey') : t('device.showKey')}
+              aria-label={showKey ? t('device.hideKey') : t('device.showKey')}
+              onClick={() => setShowKey((s) => !s)}
+            >
+              {showKey ? '🙈' : '👁️'}
+            </button>
+          }
           onChange={(e) => {
             setKey(e.target.value)
             if (err) setErr(false)

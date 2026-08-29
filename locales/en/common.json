@@ -87,6 +87,8 @@
   "device.note2": "Aggregation is at app level only; raw window titles are kept for 14 days",
   "device.unlockTitle": "Meow? Want this cat's detailed data? Show me the key…",
   "device.unlockPlaceholder": "USAGE_API_KEY",
+  "device.showKey": "Show key",
+  "device.hideKey": "Hide key",
   "device.unlockCancel": "Not now",
   "device.unlockSubmit": "Unlock",
   "device.unlockError": "Wrong key meow… (401, nothing saved)",

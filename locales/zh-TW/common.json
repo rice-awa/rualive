@@ -87,6 +87,8 @@
   "device.note2": "長期聚合只到應用（app）粒度；視窗標題僅保留 14 天原始採樣",
   "device.unlockTitle": "喵？想看本喵的詳細資料？請出示密鑰喵…",
   "device.unlockPlaceholder": "USAGE_API_KEY",
+  "device.showKey": "顯示密鑰",
+  "device.hideKey": "隱藏密鑰",
   "device.unlockCancel": "先不了",
   "device.unlockSubmit": "解鎖",
   "device.unlockError": "密鑰不對喵…（401，不會落盤）",
