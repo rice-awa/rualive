@@ -542,8 +542,15 @@ class IdleSampler:
         """
         退化模式：GetSessionIdleTime 不可用时，用锁屏状态近似「离开」。
 
-        锁屏 -> 返回足够大的值（优先用 GetActiveTime 的真实锁屏时长），确保服务端判为挂机；
+        锁屏 -> 至少 idle_threshold + 1，确保服务端一定判为挂机；若 GetActiveTime 能给出
+                更长的真实锁屏时长则用它（保留量级）。
         未锁屏 -> 返回 0（无从得知真实空闲，按在用处理）。
+
+        为什么锁屏时要兜底到 idle_threshold + 1 而不能直接用 GetActiveTime：
+        GetActiveTime 是「锁屏已持续多久」，刚锁上时它很小（比如 60），
+        而服务端判活跃用的是 `idle < idleThreshold`（heartbeat.ts:108）——
+        直接上报 60 会让「刚锁屏的这一两分钟」被记成正在使用。锁屏是我们**确知**
+        用户已离开的信号，所以下限必须越过阈值，不能被锁屏时长的绝对值拉回来。
         """
         ok, stdout, _ = run_command(
             [self.qdbus_path, 'org.freedesktop.ScreenSaver', '/ScreenSaver', 'GetActive']
@@ -551,14 +558,15 @@ class IdleSampler:
         if not ok or stdout.strip().lower() != 'true':
             return 0
 
-        # 已锁屏：尽量拿真实锁屏时长（>24h 会在解析时收敛到上限），拿不到就用刚好越过阈值的值
+        # 已锁屏：取「阈值下限」与「真实锁屏时长」的较大者（>24h 会在解析时收敛到上限）
+        floor = self.idle_threshold + 1
         ok_time, stdout_time, _ = run_command(
             [self.qdbus_path, 'org.freedesktop.ScreenSaver', '/ScreenSaver', 'GetActiveTime']
         )
         active_time, status = _parse_idle_seconds(stdout_time) if ok_time else (None, IDLE_STATUS_INVALID)
-        if status == IDLE_STATUS_INVALID or not active_time or active_time <= 0:
-            return self.idle_threshold + 1
-        return active_time
+        if status == IDLE_STATUS_INVALID or not active_time:
+            return floor
+        return max(active_time, floor)
 
     def _track_stuck_zero(self, idle: int) -> None:
         """恒 0 检测：明显在用却一直 0，说明空闲检测可能失效，提示一次即可。"""
