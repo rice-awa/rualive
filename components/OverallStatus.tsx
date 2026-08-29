@@ -5,16 +5,6 @@ import { pageConfig } from '@/uptime.config'
 import { useTranslation } from 'react-i18next'
 import styles from '@/styles/monitor.module.css'
 
-function useWindowVisibility() {
-  const [isVisible, setIsVisible] = useState(true)
-  useEffect(() => {
-    const handleVisibilityChange = () => setIsVisible(document.visibilityState === 'visible')
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
-  }, [])
-  return isVisible
-}
-
 /** 总体状态横幅（动森风，原型 .ov-banner）：状态文案 + 最后更新 + 维护提醒 */
 export default function OverallStatus({
   state,
@@ -51,21 +41,16 @@ export default function OverallStatus({
     icon = '⚠'
   }
 
-  const [openTime] = useState(Math.round(Date.now() / 1000))
   const [currentTime, setCurrentTime] = useState(Math.round(Date.now() / 1000))
-  const isWindowVisible = useWindowVisibility()
   const [expandUpcoming, setExpandUpcoming] = useState(false)
 
+  // 每秒刷新「最后更新于 X 秒前」；监控数据更新走 pages/index.tsx 的轮询，不再整页 reload
   useEffect(() => {
     const interval = setInterval(() => {
-      if (!isWindowVisible) return
-      if (currentTime - state.lastUpdate > 300 && currentTime - openTime > 30) {
-        window.location.reload()
-      }
       setCurrentTime(Math.round(Date.now() / 1000))
     }, 1000)
     return () => clearInterval(interval)
-  })
+  }, [])
 
   const now = new Date()
 

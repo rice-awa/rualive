@@ -12,8 +12,12 @@ import LeafDivider from '@/components/LeafDivider'
 import { DeviceProvider } from '@/util/useDeviceStatus'
 import { buildDeviceViews, DevicePublicView } from '@/worker/src/deviceStore'
 import { useTranslation } from 'react-i18next'
+import { useEffect, useState } from 'react'
 import { CompactedMonitorStateWrapper, getFromStore } from '@/worker/src/store'
 import styles from '@/styles/monitor.module.css'
+
+/** 监控状态轮询间隔：30s（与设备区心跳轮询一致） */
+const STATE_POLL_INTERVAL_MS = 30_000
 
 export const runtime = 'experimental-edge'
 
@@ -29,8 +33,34 @@ export default function Home({
   statusPageLink?: string
 }) {
   const { t } = useTranslation('common')
-  let state = new CompactedMonitorStateWrapper(compactedStateStr).uncompact()
+  // 监控状态初始值来自 SSR，之后靠轮询就地更新（无整页刷新）
+  const [state, setState] = useState(
+    () => new CompactedMonitorStateWrapper(compactedStateStr).uncompact()
+  )
   const hasMonitorState = state.lastUpdate !== 0
+
+  // 每 30s 拉取最新压缩状态并就地解包更新；替代原 OverallStatus 的整页 reload
+  useEffect(() => {
+    let cancelled = false
+    const poll = async () => {
+      try {
+        const res = await fetch('/api/state')
+        if (!res.ok) return
+        const data = (await res.json()) as { compactedStateStr?: string }
+        if (cancelled || typeof data.compactedStateStr !== 'string') return
+        const fresh = new CompactedMonitorStateWrapper(data.compactedStateStr).uncompact()
+        setState((prev) => (prev.lastUpdate === fresh.lastUpdate ? prev : fresh))
+      } catch {
+        // 网络抖动忽略，下个周期重试
+      }
+    }
+    poll()
+    const timer = setInterval(poll, STATE_POLL_INTERVAL_MS)
+    return () => {
+      cancelled = true
+      clearInterval(timer)
+    }
+  }, [])
 
   // Specify monitorId in URL hash to view a specific monitor (can be used in iframe)
   // `#device:<id>` 属于设备区（DeviceSection 内部处理），不进入监控直达逻辑
