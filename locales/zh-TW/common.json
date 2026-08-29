@@ -115,5 +115,5 @@
   "mon.dur.days": "{{n}} 天",
   "mon.dur.hours": "{{n}} 小時",
   "mon.dur.minutes": "{{n}} 分鐘",
-  "footer.default": "UptimeFlare × 似了喵？ · 專案網址 <a href=\"https://github.com/rice-awa/UptimeFlare\" target=\"_blank\" rel=\"noreferrer\">UptimeFlare</a> · 原專案 <a href=\"https://github.com/lyc8503/UptimeFlare\" target=\"_blank\" rel=\"noreferrer\">UptimeFlare (lyc8503)</a>"
+  "footer.default": "rualive × 似了喵？ · 專案網址 <a href=\"https://github.com/rice-awa/rualive\" target=\"_blank\" rel=\"noreferrer\">rualive</a> · 原專案 <a href=\"https://github.com/lyc8503/UptimeFlare\" target=\"_blank\" rel=\"noreferrer\">UptimeFlare (lyc8503)</a>"
 }

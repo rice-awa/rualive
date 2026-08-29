@@ -1,6 +1,6 @@
 [Unit]
 Description=UptimeFlare 似了喵 Agent (Linux/KDE heartbeat reporter)
-Documentation=https://github.com/rice-awa/UptimeFlare
+Documentation=https://github.com/rice-awa/rualive
 # 只在图形会话就绪后启动：kdotool / qdbus 都需要 KWin 与会话总线
 After=graphical-session.target
 PartOf=graphical-session.target
