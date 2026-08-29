@@ -3,12 +3,10 @@
   ⚠️ UI 原型（PROTOTYPE — throwaway，非生产代码，数据全部为本地 mock）
 
   问题：「似了喵？」设备存活监控区（PRD F3/F4/F7/F8）应该长什么样？
-  三个结构不同的变体，通过底部悬浮条 / 键盘 ← → / URL ?variant= 切换：
+  两个完整页面，右上角按钮切换（URL ?page= 直达，键盘 ← → 也可切换）：
 
-    A · 卡片墙 + 详情页 —— PRD F3 原案：横向动森卡片，点击进入 #device:<id> 详情
-                          （Tabs 今日/7天/30天 + 图表 + 口径说明）
-    B · 猫猫日记流 —— 无二级页：竖向横幅 + 对话气泡 + 内联展开统计（时间线优先）
-    C · 主设备指挥台 —— 主设备大仪表盘 + 其余设备侧栏磁贴（可点击聚焦）+ 表格优先
+    主页（默认）= C 指挥台（仅展示配置的主设备）+ A 卡片墙 + A 详情页（全部保留）
+    猫猫日记流  = B 横幅流：对话气泡 + 内联展开统计，无二级页
 
   共同演示的 PRD 要点：
     · 三态猫猫（活着喵！/ 在挂机喵… / 似了喵…）+ 打字机状态文案
@@ -98,6 +96,10 @@ code{background:rgba(74,59,44,.1);border-radius:6px;padding:1px 6px;font-size:.9
   background:var(--paper-2);border:2.5px solid var(--ink);border-radius:999px;
   padding:5px 14px;font-weight:800;font-size:13px;box-shadow:0 3px 0 rgba(74,59,44,.25);
 }
+.phead-right{display:flex;align-items:center;gap:12px}
+.view-toggle{display:flex;background:var(--paper-2);border:3px solid var(--ink);border-radius:999px;padding:3px;box-shadow:0 3px 0 rgba(74,59,44,.25)}
+.vt-btn{font:inherit;font-weight:800;font-size:13px;color:var(--ink-soft);background:transparent;border:none;border-radius:999px;padding:5px 14px;cursor:pointer;white-space:nowrap}
+.vt-btn.on{background:var(--leaf);color:#fff;box-shadow:0 2px 0 var(--ink)}
 .ov-banner{
   background:#D9EDB2;border:3px solid var(--ink);border-radius:16px;padding:10px 18px;
   font-weight:800;box-shadow:0 4px 0 rgba(74,59,44,.22);font-size:14.5px;
@@ -175,9 +177,7 @@ code{background:rgba(74,59,44,.1);border-radius:6px;padding:1px 6px;font-size:.9
 .bpanel .row>div{flex:1;min-width:220px}
 .bpanel-lock{display:flex;align-items:center;gap:12px;font-weight:800;color:var(--ink-soft)}
 
-/* ============ 变体 C · 指挥台 ============ */
-.dash{display:grid;grid-template-columns:1fr 250px;gap:18px}
-@media (max-width:820px){.dash{grid-template-columns:1fr}}
+/* ============ 指挥台（主页上半，仅主设备） ============ */
 .hero{
   background:var(--paper-2);border:3px solid var(--ink);border-radius:28px;
   padding:24px 26px;box-shadow:0 8px 0 rgba(74,59,44,.22);
@@ -190,28 +190,10 @@ code{background:rgba(74,59,44,.1);border-radius:6px;padding:1px 6px;font-size:.9
 .stat-box{flex:1;min-width:150px;background:rgba(255,255,255,.5);border:2.5px solid var(--ink);border-radius:16px;padding:10px 14px}
 .stat-box .lbl{font-size:11.5px;font-weight:800;color:var(--ink-soft)}
 .stat-box .val{font-size:24px;font-weight:800;margin-top:2px}
-.side-tile{
-  background:var(--paper-2);border:2.5px solid var(--ink);border-radius:18px;padding:10px 12px;
-  display:flex;gap:10px;align-items:center;cursor:pointer;box-shadow:0 4px 0 rgba(74,59,44,.2);
-  margin-bottom:12px;transition:transform .1s;
-}
-.side-tile:hover{transform:translateY(-2px)}
-.side-tile .tile-cat{width:46px;height:44px;flex:none}
-.side-tile .tile-name{font-size:12.5px;font-weight:800}
-.side-tile .tile-meta{font-size:11px;color:var(--ink-soft);font-weight:700;margin-top:1px}
-.rank-table{width:100%;border-collapse:collapse;font-size:13px;font-weight:700}
-.rank-table td{padding:5px 8px;border-bottom:2px dashed rgba(74,59,44,.18)}
-.rank-table tr:last-child td{border-bottom:none}
-.rank-table .rk{width:26px;color:var(--ink-soft)}
-.rank-table .du{width:96px;text-align:right;white-space:nowrap}
 .bar-track{background:rgba(74,59,44,.08);border-radius:999px;height:17px;overflow:hidden}
 .bar-fill{height:100%;border-radius:999px;border:2px solid rgba(74,59,44,.6);min-width:4px}
 .lock-panel{display:flex;flex-direction:column;align-items:center;gap:10px;padding:26px 10px;text-align:center}
 .lock-panel .big{font-size:30px}
-.mtable{width:100%;border-collapse:collapse;font-size:13px;font-weight:700}
-.mtable td{padding:8px 10px;border-bottom:2px dashed rgba(74,59,44,.18)}
-.mtable tr:last-child td{border-bottom:none}
-.mtable .dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#3fb950;margin-right:6px}
 
 /* ============ 设备详情（变体 A） ============ */
 .detail{position:fixed;inset:0;background:var(--paper);z-index:100;overflow:auto;padding:24px 20px 90px;
@@ -294,22 +276,6 @@ details.collapse summary{cursor:pointer;font-weight:800;color:var(--ink)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* ============ 原型工具（不属于设计本身） ============ */
-.proto-bar{
-  position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:90;
-  display:flex;align-items:center;gap:10px;background:#2E2A24;color:#F7EFDD;
-  border-radius:999px;padding:8px 12px;box-shadow:0 10px 26px rgba(0,0,0,.4);
-}
-.proto-bar button{
-  font:inherit;font-weight:800;font-size:16px;width:34px;height:34px;border-radius:50%;
-  border:2px solid #F7EFDD;background:transparent;color:#F7EFDD;cursor:pointer;line-height:1;
-}
-.proto-bar button:hover{background:rgba(247,239,221,.18)}
-.pb-label{font-size:13.5px;font-weight:700;min-width:210px;text-align:center}
-.pb-label b{font-size:15px}
-.proto-hint{
-  position:fixed;bottom:66px;left:50%;transform:translateX(-50%);z-index:89;
-  font-size:11px;color:rgba(74,59,44,.55);font-weight:700;
-}
 .mock-panel{
   position:fixed;left:14px;bottom:18px;z-index:85;width:262px;
   background:var(--paper-2);border:3px solid var(--ink);border-radius:16px;
@@ -335,14 +301,6 @@ details.collapse summary{cursor:pointer;font-weight:800;color:var(--ink)}
 <div class="toast" id="toast"></div>
 <div id="modal-root"></div>
 
-<!-- 原型变体切换悬浮条（不属于页面设计） -->
-<div class="proto-hint">← → 切换原型变体 · 页面数据均为本地 mock</div>
-<nav class="proto-bar">
-  <button id="pbPrev" title="上一个变体">←</button>
-  <div class="pb-label" id="pbLabel"></div>
-  <button id="pbNext" title="下一个变体">→</button>
-</nav>
-
 <!-- 原型控制台：模拟 Agent 心跳状态翻转 / 清除密钥缓存 -->
 <aside class="mock-panel" id="mockPanel">
   <div class="mock-head" onclick="toggleMock()">🛠 原型控制台 <span id="mockChev">▾</span></div>
@@ -358,7 +316,7 @@ var STATE_TXT = { online: '活着喵！', idle: '在挂机喵…', offline: '似
 var PALETTE = ['#AFD46A','#F0A852','#9CD3E8','#F2A9A2','#F5D98B','#8FD3B6','#C9A6E8','#E8C39A','#A8C6E8','#F0BFBF'];
 
 var S = {
-  variant: 'A',
+  page: 'home',
   now: Math.floor(Date.now() / 1000),
   key: localStorage.getItem(LS_KEY),
   detailDevice: null,
@@ -568,7 +526,12 @@ function lockPanel(what){
 /* ================= 共享区块：页头 / 总览 / 原监控列表（模拟 Mantine，保持不动） ================= */
 function pageHeader(){
   return '<header class="phead"><h1>🐾 Riceawa 的状态页<small>似了喵？原型</small></h1>'
-    + '<div class="clock-pill">现在 <span data-clock>' + fmtClock(S.now) + '</span></div></header>';
+    + '<div class="phead-right">'
+    + '<div class="view-toggle">'
+    + '<button class="vt-btn' + (S.page === 'home' ? ' on' : '') + '" onclick="setPage(\'home\')">🏠 主页</button>'
+    + '<button class="vt-btn' + (S.page === 'feed' ? ' on' : '') + '" onclick="setPage(\'feed\')">📔 猫猫日记</button>'
+    + '</div>'
+    + '<div class="clock-pill">现在 <span data-clock>' + fmtClock(S.now) + '</span></div></div></header>';
 }
 function overallStatus(){
   return '<div class="ov-banner">✓ 所有监控运行正常 <small>· 总体状态（现有组件，未改动）</small></div>';
@@ -593,9 +556,23 @@ function pageFooter(){
   return '<div class="pfoot">UptimeFlare × 似了喵？— UI 原型 · 数据为本地 mock · 非生产代码</div>';
 }
 
-/* ================= 变体 A：卡片墙 + 详情页（PRD F3 原案） ================= */
-function renderA(app){
-  var cards = S.devices.map(function(d){
+/* ================= 主页：C 指挥台（仅配置的主设备） + A 卡片墙 + 详情页 ================= */
+function heroPanel(p){
+  return '<div class="hero"><div class="hero-top"><div class="hero-cat">' + catSVG(p.state) + '</div>'
+    + '<div><div class="hero-status"><span data-tw="' + STATE_TXT[p.state] + '" data-twkey="C:' + p.id + '"></span></div>'
+    + '<div class="hero-name">' + esc(p.name) + ' <span class="chip">' + esc(p.os) + '</span> <span class="chip">⭐ 主设备</span></div>'
+    + '<div class="muted" style="font-size:12.5px;font-weight:700;margin-top:6px">最后心跳 <b data-rel="' + p.id + '">' + fmtRel(p.lastSeen) + '</b></div>'
+    + '<div style="margin-top:12px;max-width:420px">' + windowLine(p) + '</div></div></div>'
+    + '<div class="hero-stats"><div class="stat-box"><div class="lbl">今日活跃总时长（公开）</div>'
+    + '<div class="val">' + (p.usageTracking ? '<span data-total="' + p.id + '">' + fmtDur(p.today) + '</span>' : '—') + '</div></div>'
+    + '<div class="stat-box" style="flex:2"><div class="lbl">今日 24 小时分布' + (S.key || !p.usageTracking ? '' : '（🔒 需密钥）') + '</div>'
+    + (p.usageTracking
+        ? (S.key ? hourlyChart(p, true) : '<div class="lock-panel" style="padding:12px 0 4px"><button class="btn btn--ghost btn--sm" onclick="openModal()">🔒 解锁后显示逐小时分布</button></div>')
+        : '<div class="muted" style="font-size:12px;font-weight:700;padding-top:14px">未开启统计</div>')
+    + '</div></div></div>';
+}
+function cardWall(){
+  return '<div class="card-row">' + S.devices.map(function(d){
     return '<article class="acard acard--' + d.state + '" onclick="goDetail(\'' + d.id + '\')">'
       + '<div class="acard-cat">' + catSVG(d.state) + '</div>'
       + '<div class="acard-main">'
@@ -606,9 +583,14 @@ function renderA(app){
       + '</div>'
       + windowLine(d)
       + '</div><span class="acard-more">详情 →</span></article>';
-  }).join('');
-  app.innerHTML += '<div class="area-head"><h2>🐱 似了喵？</h2><span class="sub">设备存活监控 · 心跳每 30 秒 · 点击卡片看使用统计</span></div>'
-    + '<div class="card-row">' + cards + '</div>';
+  }).join('') + '</div>';
+}
+function renderHome(app){
+  var p = dev(S.primary) || S.devices[0];
+  app.innerHTML += '<div class="area-head"><h2>🐱 似了喵？</h2><span class="sub">指挥台聚焦主设备 · 心跳每 30 秒 · 点击卡片进入使用统计详情</span></div>'
+    + heroPanel(p)
+    + '<div class="area-head"><h2 style="font-size:16px">🐾 全部设备</h2><span class="sub">点击卡片进入详情页</span></div>'
+    + cardWall();
 }
 function detailOverlay(){
   var d = dev(S.detailDevice); if (!d) return '';
@@ -650,8 +632,8 @@ function detailOverlay(){
     + '</div></div>';
 }
 
-/* ================= 变体 B：猫猫日记流（无二级页，时间线优先） ================= */
-function renderB(app){
+/* ================= 猫猫日记流页（无二级页，时间线优先） ================= */
+function renderFeed(app){
   var banners = S.devices.map(function(d){
     var bubble;
     if (!d.hasWindow) bubble = '<div class="bubble muted">（本喵是无头服务器，没有窗口喵）</div>';
@@ -682,90 +664,26 @@ function renderB(app){
   app.innerHTML += '<div class="area-head"><h2>🐱 似了喵？</h2><span class="sub">猫猫日记流 · 一屏读完 · 无二级页</span></div>' + banners;
 }
 
-/* ================= 变体 C：主设备指挥台（表格优先，密度最高） ================= */
-function renderC(app){
-  var p = dev(S.primary) || S.devices[0];
-  var others = S.devices.filter(function(d){ return d.id !== p.id; });
-  var rank;
-  if (!p.usageTracking) rank = '<div class="panel muted" style="font-weight:700">该设备未开启使用统计（usageTracking: false），仅心跳。</div>';
-  else if (!S.key) rank = '<div class="panel">' + lockPanel('今日应用排行') + '</div>';
-  else {
-    var app = BY_APP[p.id] || {};
-    var rows = Object.keys(app).map(function(k){ return [k, app[k]]; }).sort(function(a,b){ return b[1]-a[1]; });
-    var max = rows.length ? rows[0][1] : 1;
-    rank = '<div class="panel"><h3 class="panel-title">🏆 今日应用排行（' + esc(p.name) + '）</h3><table class="rank-table">'
-      + rows.map(function(r, i){
-        return '<tr><td class="rk">' + (i+1) + '</td><td>' + esc(appLabel(r[0])) + '</td>'
-          + '<td><div class="bar-track"><div class="bar-fill" style="width:' + Math.max(3, r[1]/max*100) + '%;background:' + PALETTE[i % PALETTE.length] + '"></div></div></td>'
-          + '<td class="du">' + fmtDur(r[1]) + '</td></tr>';
-      }).join('') + '</table>' + collapseNote() + '</div>';
-  }
-  var tiles = others.map(function(d){
-    return '<div class="side-tile" onclick="setPrimary(\'' + d.id + '\')" title="点击聚焦该设备">'
-      + '<div class="tile-cat">' + catSVG(d.state) + '</div>'
-      + '<div><div class="tile-name">' + esc(d.name) + '</div>'
-      + '<div class="tile-meta">' + STATE_TXT[d.state] + ' · <span data-rel="' + d.id + '">' + fmtRel(d.lastSeen) + '</span>'
-      + (d.usageTracking ? ' · 今日 ' + fmtDur(d.today) : '') + '</div></div></div>';
-  }).join('');
-  app.innerHTML += '<div class="area-head"><h2>🐱 似了喵？</h2><span class="sub">指挥台视图 · 主设备全量 + 其余设备磁贴</span></div>'
-    + '<div class="dash">'
-    + '<div class="hero"><div class="hero-top"><div class="hero-cat">' + catSVG(p.state) + '</div>'
-    + '<div><div class="hero-status"><span data-tw="' + STATE_TXT[p.state] + '" data-twkey="C:' + p.id + '"></span></div>'
-    + '<div class="hero-name">' + esc(p.name) + ' <span class="chip">' + esc(p.os) + '</span></div>'
-    + '<div class="muted" style="font-size:12.5px;font-weight:700;margin-top:6px">最后心跳 <b data-rel="' + p.id + '">' + fmtRel(p.lastSeen) + '</b></div>'
-    + '<div style="margin-top:12px;max-width:420px">' + windowLine(p) + '</div></div></div>'
-    + '<div class="hero-stats"><div class="stat-box"><div class="lbl">今日活跃总时长（公开）</div>'
-    + '<div class="val">' + (p.usageTracking ? '<span data-total="' + p.id + '">' + fmtDur(p.today) + '</span>' : '—') + '</div></div>'
-    + '<div class="stat-box" style="flex:2"><div class="lbl">今日 24 小时分布' + (S.key || !p.usageTracking ? '' : '（🔒 需密钥）') + '</div>'
-    + (p.usageTracking
-        ? (S.key ? hourlyChart(p, true) : '<div class="lock-panel" style="padding:12px 0 4px"><button class="btn btn--ghost btn--sm" onclick="openModal()">🔒 解锁后显示逐小时分布</button></div>')
-        : '<div class="muted" style="font-size:12px;font-weight:700;padding-top:14px">未开启统计</div>')
-    + '</div></div></div>'
-    + '<div><div style="font-size:12.5px;font-weight:800;color:var(--ink-soft);margin:2px 0 10px">其他设备（点击聚焦）</div>' + tiles + '</div>'
-    + '</div>'
-    + '<div style="margin-top:18px">' + rank + '</div>';
-}
-
-/* ================= Mantine 风格监控表（变体 C 用紧凑表格版） ================= */
-function monitorTable(){
-  return '<section class="mz">'
-    + '<div class="mz-banner">✓ 所有监控运行正常（UptimeFlare 现有区块）</div>'
-    + '<div class="mz-note">— 变体 C：原监控列表改为紧凑表格以匹配指挥台密度 —</div>'
-    + '<div class="panel" style="padding:6px 14px"><table class="mtable">'
-    + S.monitors.map(function(m){
-        return '<tr><td><span class="dot"></span>' + m.name + '</td><td class="muted" style="font-size:12px">' + m.url + '</td>'
-          + '<td style="text-align:right;font-size:12px">200 OK · ' + m.ms + ' ms</td>'
-          + '<td style="text-align:right;font-size:12px">90 天 ' + m.uptime + '</td></tr>';
-      }).join('')
-    + '</table></div></section>';
-}
-
-/* ================= 渲染入口 ================= */
-var VARIANTS = {
-  A: { name: '卡片墙 + 详情页', render: renderA, monitor: monitorZone },
-  B: { name: '猫猫日记流（无二级页）', render: renderB, monitor: monitorZone },
-  C: { name: '主设备指挥台', render: renderC, monitor: monitorTable },
+/* ================= 渲染入口（双页面切换） ================= */
+var PAGES = {
+  home: { render: renderHome, monitor: monitorZone },
+  feed: { render: renderFeed, monitor: monitorZone },
 };
 function render(){
   var app = document.getElementById('app');
-  var v = VARIANTS[S.variant];
+  var p = PAGES[S.page];
   app.innerHTML = pageHeader() + overallStatus();
-  v.render(app);
-  app.innerHTML += leafDivider('上面：似了喵设备区（动森风）｜下面：原有服务器 / 网站监控') + v.monitor() + pageFooter();
+  p.render(app);
+  app.innerHTML += leafDivider('上面：似了喵设备区（动森风）｜下面：原有服务器 / 网站监控') + p.monitor() + pageFooter();
   if (S.detailDevice) app.innerHTML += detailOverlay();
   document.querySelectorAll('[data-tw]').forEach(typewrite);
   updateMock();
 }
-function setVariant(v){
-  S.variant = v;
-  try { history.replaceState(null, '', '?variant=' + v + location.hash); } catch (e) {}
-  document.getElementById('pbLabel').innerHTML = '<b>' + v + '</b> · ' + VARIANTS[v].name;
+function setPage(pg){
+  if (!PAGES[pg]) pg = 'home';
+  S.page = pg;
+  try { history.replaceState(null, '', '?page=' + pg + location.hash); } catch (e) {}
   render();
-}
-function cycle(dir){
-  var keys = Object.keys(VARIANTS);
-  var i = keys.indexOf(S.variant);
-  setVariant(keys[(i + dir + keys.length) % keys.length]);
 }
 function goDetail(id){
   S.detailDevice = id; S.detailTab = 'today';
@@ -779,7 +697,6 @@ function goBack(){
 }
 function setTab(t){ S.detailTab = t; render(); }
 function toggleExp(id){ S.expanded[id] = !S.expanded[id]; render(); }
-function setPrimary(id){ S.primary = id; render(); }
 
 /* ================= 解锁弹窗（F7：X-API-Key + localStorage 缓存 uf_usage_key） ================= */
 function openModal(){
@@ -887,28 +804,26 @@ document.addEventListener('keydown', function(e){
   if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
   var t = e.target;
   if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
-  cycle(e.key === 'ArrowRight' ? 1 : -1);
+  setPage(S.page === 'home' ? 'feed' : 'home');
 });
 window.addEventListener('hashchange', function(){
   var m = location.hash.match(/^#device:(.+)$/);
   var id = m ? m[1] : null;
   if (id !== S.detailDevice) { S.detailDevice = id; render(); }
 });
-document.getElementById('pbPrev').addEventListener('click', function(){ cycle(-1); });
-document.getElementById('pbNext').addEventListener('click', function(){ cycle(1); });
 
 buildMockPanel();
-var vParam = 'A', demo = null;
+var vParam = 'home', demo = null;
 try {
   var usp = new URLSearchParams(location.search);
-  vParam = usp.get('variant') || 'A';
+  vParam = usp.get('page') || usp.get('variant') || 'home'; // variant 兼容旧链接
   demo = usp.get('demo'); // 原型辅助：demo=unlock 直接解锁视角；demo=modal 打开解锁弹窗
 } catch (e) {}
-if (!VARIANTS[vParam]) vParam = 'A';
+if (!PAGES[vParam]) vParam = 'home';
 if (demo === 'unlock') S.key = DEMO_KEY;
 var mHash = location.hash.match(/^#device:(.+)$/);
 if (mHash) S.detailDevice = mHash[1];
-setVariant(vParam);
+setPage(vParam);
 if (demo === 'modal') openModal();
 </script>
 </body>
