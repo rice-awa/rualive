@@ -4,6 +4,8 @@ import { workerConfig } from '../../uptime.config'
 import { getStatus, getStatusWithGlobalPing } from './monitor'
 import { formatAndNotify, getWorkerLocation } from './util'
 import { CompactedMonitorStateWrapper, getFromStore, setToStore } from './store'
+import { checkDeviceNotifications } from './deviceNotify'
+import { cleanupDeviceEvents } from './deviceStore'
 
 export interface Env {
   UPTIMEFLARE_STATE: KVNamespace
@@ -285,6 +287,20 @@ const Worker = {
       await setToStore(env, 'state', state.getCompactedStateStr())
     } else {
       console.log('Skipping state update due to cooldown period.')
+    }
+
+    // 设备存活翻转通知（M3 / PRD F6）：复用 notification.webhook，首次运行只建基线不通知
+    try {
+      await checkDeviceNotifications(env)
+    } catch (e) {
+      console.log('Error checking device notifications: ' + e)
+    }
+
+    // 事件过期清理（T20）：device_events 原始采样只保留 14 天
+    try {
+      await cleanupDeviceEvents(env, currentTimeSecond - 14 * 24 * 60 * 60)
+    } catch (e) {
+      console.log('Error cleaning up device events: ' + e)
     }
   },
 }
