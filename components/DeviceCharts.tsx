@@ -105,6 +105,7 @@ export function HourlyChart({
   const activePercent = Math.min(100, Math.round((activeValue / 3600) * 100))
   const activeHourLabel = String(activeHour).padStart(2, '0')
   const nextHourLabel = String((activeHour + 1) % 24).padStart(2, '0')
+  const currentHourLabel = String(cur).padStart(2, '0')
   const activeRange = t('device.hourlyRange', { start: activeHourLabel, end: nextHourLabel })
 
   const cols = vals.map((v, h) => {
@@ -127,7 +128,6 @@ export function HourlyChart({
         aria-label={`${range} · ${fmtDur(v)} · ${percent}%`}
         aria-current={h === cur ? 'time' : undefined}
         onMouseEnter={() => setHoveredHour(h)}
-        onMouseLeave={() => setHoveredHour(null)}
         onFocus={() => setFocusedHour(h)}
         onBlur={() => setFocusedHour(null)}
       />
@@ -138,7 +138,9 @@ export function HourlyChart({
       <div className={styles.hreadout} aria-live="polite">
         <div className={styles.hreadoutMain}>
           <span className={styles.hreadoutRange}>{activeRange}</span>
-          {activeHour === cur && <span className={styles.hreadoutNow}>{t('device.hourlyCurrent')}</span>}
+          <span className={styles.hreadoutNow}>
+            {t('device.hourlyCurrent')} · {currentHourLabel}:00
+          </span>
         </div>
         <div className={styles.hreadoutStats}>
           <strong>{fmtDur(activeValue)}</strong>
@@ -155,7 +157,9 @@ export function HourlyChart({
           <i />
           <i />
         </div>
-        <div className={styles.hcols}>{cols}</div>
+        <div className={styles.hcols} onMouseLeave={() => setHoveredHour(null)}>
+          {cols}
+        </div>
       </div>
       <div className={styles.hlabels}>
         <span>0</span>

@@ -741,9 +741,8 @@
   background: var(--lime);
   border-radius: 4px 4px 2px 2px;
   min-height: 2px;
-  cursor: crosshair;
-  transition: filter 0.15s ease, background 0.15s ease, transform 0.15s ease;
-  transform-origin: bottom center;
+  cursor: default;
+  transition: filter 0.15s ease, background 0.15s ease;
 }
 .hcolEmpty {
   background: rgba(127, 176, 105, 0.26);
@@ -752,11 +751,20 @@
 .hcolActive {
   background: var(--leaf);
   filter: brightness(0.93);
-  transform: scaleY(1.035);
 }
 .hcolNow {
   outline: 2.5px solid var(--ink);
   outline-offset: 1px;
+  animation: hCurrentBreath 3s ease-in-out infinite;
+}
+@keyframes hCurrentBreath {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(74, 59, 44, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgba(74, 59, 44, 0.14);
+  }
 }
 .hcol:focus-visible {
   outline: 2.5px solid var(--orange);
@@ -920,6 +928,7 @@
   .catIdle .tailg,
   .zz,
   .acard,
+  .hcolNow,
   .toast {
     animation: none !important;
     transition: none !important;
