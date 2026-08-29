@@ -12,6 +12,7 @@
 agent/
 ├── agent.py                          Linux Agent
 ├── agent.ps1                         Windows Agent
+├── install-linux.sh                  Linux 一键安装脚本（自动装 kdotool + systemd 服务）
 ├── agent.json.example                配置示例（复制为 agent.json 后填写）
 ├── systemd/
 │   └── uptimeflare-agent.service     Linux systemd user unit
@@ -86,7 +87,43 @@ Content-Type: application/json
 
 ## Linux（KDE Plasma / Wayland）
 
-### 1. 安装依赖
+### 1. 一键安装（推荐）
+
+KDE 图形会话下最省事的方式：跑一次脚本，自动检测环境、安装 kdotool、部署
+`agent.py` 与配置、装好并启用 systemd user 服务，最后跑一次 `--once --dry-run`
+验证窗口采集：
+
+```bash
+cd agent
+bash install-linux.sh
+```
+
+脚本会：
+
+- 检测图形会话 / KDE Plasma 版本 / 架构 / 发行版（apt / pacman / dnf / …）；
+- 安装 `kdotool`：优先用 `~/Downloads` 里已有的 `kdotool-*.tar.gz`，没有则从
+  GitHub 下载官方 release（默认锁 v0.2.3，同时支持 Plasma 5 与 6）；
+- 检查 `python3` / `requests` / `qdbus`，缺失时按你的发行版给出安装命令；
+- 把 `agent.py` 与配置部署到 `~/.local/share/uptimeflare-agent/`；
+- 已有 `agent.json` 则复用；没有则交互式询问 endpoint / token / device_id，
+  也可用 `--endpoint` / `--token` / `--device-id` 参数或同名环境变量跳过交互；
+- 安装并启用 `uptimeflare-agent.service`（systemd user，绑定图形会话）。
+
+常用参数：
+
+| 参数 | 说明 |
+|---|---|
+| `--endpoint URL` / `--token TOKEN` / `--device-id ID` | 跳过对应项的交互询问 |
+| `--kdotool-tarball PATH` | 指定本地 kdotool 压缩包，不自动搜 `~/Downloads` |
+| `--yes` | 全程不交互（配置项缺失时直接报错） |
+| `--no-kdotool` | 不装 kdotool，只跑心跳 |
+
+> 脚本**幂等**，重复执行安全：已有配置与已启用的服务不会被破坏。
+> 装完看实时日志：`journalctl --user -u uptimeflare-agent -f`。
+> kdotool 安装在 `~/.local/bin`，脚本会把该目录写进服务 unit 的 `PATH`，
+> 所以服务内一定找得到；手动装到其它位置请相应调整 unit。
+
+### 2. 安装依赖（手动）
 
 ```bash
 # requests：唯一的 Python 第三方依赖
@@ -104,8 +141,8 @@ sudo pacman -S qt6-tools               # Arch
 [jinliu/kdotool](https://github.com/jinliu/kdotool)（Rust 项目，可 `cargo install`
 或下载 release 二进制放进 `PATH`）。
 
-> **版本要求**：kdotool **v0.3.0 及以上只支持 Plasma 6**；Plasma 5 用户需锁定
-> v0.2.x。装好后确认这两条命令有正常输出：
+> **版本要求**：kdotool **v0.2.x 同时支持 Plasma 5 与 6**（2026-04 的 v0.2.3 即当前
+> 最新）；按计划未来的 v0.3.0+ 将只支持 Plasma 6。装好后确认这两条命令有正常输出：
 > ```bash
 > kdotool --version
 > kdotool getactivewindow
@@ -115,7 +152,7 @@ sudo pacman -S qt6-tools               # Arch
 headless 模式 —— 心跳照常上报（设备在线状态正常工作），只是 `title` / `app`
 为空串，没有窗口和使用时长统计。
 
-### 2. 为什么 Wayland 下要靠 kdotool
+### 3. 为什么 Wayland 下要靠 kdotool
 
 Wayland 出于安全设计移除了「全局读取前台窗口」的接口，KDE 下唯一可靠路径是
 KWin 的 scripting API。kdotool 已经把这套机制（动态生成 KWin 脚本 → 经 D-Bus
@@ -131,7 +168,7 @@ kdotool getwindowclassname <id>   → 应用标识（resourceClass，如 code、
 
 30 秒一次、每次 3 个短命子进程，CPU 与流量开销可忽略。
 
-### 3. 先手动验证
+### 4. 先手动验证
 
 在图形会话的终端里跑一次，确认采集正常（`--dry-run` 只采集不上报）：
 
@@ -155,9 +192,11 @@ python3 agent.py --once
 | `--dry-run` | 只采集并打印请求体，不实际发请求 |
 | `-h, --help` | 帮助 |
 
-### 4. 装成 systemd user 服务
+### 5. 装成 systemd user 服务
 
 unit 绑定 `graphical-session.target`，只在图形会话内运行，登录即起、登出即停。
+
+> 上面第 1 节的一键脚本会自动完成以下所有步骤；本节保留手动步骤供参考。
 
 ```bash
 # 1) 放置脚本与配置
@@ -194,7 +233,7 @@ journalctl --user -u uptimeflare-agent -f
 systemctl --user disable --now uptimeflare-agent
 ```
 
-### 5. 已知限制：空闲时间在 Plasma 6 Wayland 上不可用
+### 6. 已知限制：空闲时间在 Plasma 6 Wayland 上不可用
 
 PRD 里选定的空闲检测方案是
 `qdbus org.freedesktop.ScreenSaver /ScreenSaver GetSessionIdleTime`，
@@ -238,13 +277,13 @@ D-Bus 接口上方法签名是存在的，但 KWin 在 Wayland 下没有实现�
   若某实现返回毫秒，数值会长期贴着 86400 上限，此时 clamp 告警会同时列出两种可能
   （真挂机 / 单位不是秒）供你判断。
 
-### 6. qdbus 可执行文件名
+### 7. qdbus 可执行文件名
 
 不同发行版 / Qt 版本下名字不一样，Agent 会按 `qdbus6` → `qdbus-qt6` → `qdbus`
 → `qdbus-qt5` 顺序自动探测。例如 Ubuntu 上装的 qt6-tools 提供的是 `qdbus6`，
 并没有 `qdbus`。启动日志里会打印实际用的是哪一个。
 
-### 7. headless / 无图形会话
+### 8. headless / 无图形会话
 
 通过 SSH 登录、或在没有 `DISPLAY` / `WAYLAND_DISPLAY` 的环境里运行时，Agent 判为
 headless：跳过所有 kdotool / qdbus 调用，只上报心跳，`title` / `app` 为空串，
@@ -252,7 +291,7 @@ headless：跳过所有 kdotool / qdbus 调用，只上报心跳，`title` / `ap
 
 服务器常规监控走项目原有的 HTTP 探测就够了，headless 跑 Agent 只是可选形态。
 
-### 8. 故障排查
+### 9. 故障排查
 
 | 现象 | 原因与处理 |
 |---|---|
@@ -262,8 +301,9 @@ headless：跳过所有 kdotool / qdbus 调用，只上报心跳，`title` / `ap
 | HTTP `401` | token 与服务端 `AGENT_TOKEN` 不一致 |
 | HTTP `400 Unknown device` | `device_id` 不在服务端 `uptime.config.ts` 的 `devices[]` 里 |
 | HTTP `404` | `endpoint` 写错，应是站点根地址，不要带 `/api` |
-| `未找到 kdotool` | 见上面第 1 节；不装也能跑，只是没有窗口信息 |
+| `未找到 kdotool` | 见上面第 2 节；不装也能跑，只是没有窗口信息 |
 | 页面上窗口标题一直为空 | 确认在图形会话内运行（systemd user 服务而非 root/system 服务），且 `kdotool getactivewindow` 手动能出结果 |
+| 页面显示「无图形会话（headless，仅心跳）」 | 两种可能：① 真的没有图形会话（SSH / 无 `DISPLAY`）；② **有图形会话但 kdotool 缺失**。Agent 对这两种情况统一退化为 headless。看启动日志区分：若打印「未找到 kdotool」就是 ②，装好 kdotool（一键脚本或上面第 2 节）后 `systemctl --user restart uptimeflare-agent` |
 | 服务不自启 | 部分发行版的 user systemd 不会拉起 `graphical-session.target`。先查 `systemctl --user status graphical-session.target`；若确实没起，把 unit 的 `WantedBy` 改成 `default.target` 后 `daemon-reload` 重新 enable |
 | 日志里没有输出 | 脚本已按行 flush；用 `journalctl --user -u uptimeflare-agent -f` 看 |
 

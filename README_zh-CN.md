@@ -7,6 +7,25 @@
 
 一个由 Cloudflare Workers 驱动的功能丰富、Serverless 且免费的 Uptime 监控及状态页面。
 
+## 🐱 设备监控 Agent（似了喵？）
+
+本 fork 在 UptimeFlare 之上新增**设备存活监控与屏幕使用时长统计**：在电脑上装一个
+小 Agent，每几十秒向状态页上报前台窗口与输入空闲时间。
+
+| 平台 | 一键安装 |
+|---|---|
+| Linux（KDE Plasma / Wayland） | `cd agent && bash install-linux.sh` |
+| Windows | `powershell -NoProfile -ExecutionPolicy Bypass -File agent\agent.ps1 -Install` |
+
+Linux 脚本自动检测环境（图形会话 / Plasma 版本 / 发行版），安装 kdotool、部署
+`agent.py` 与配置，并启用 `systemd --user` 服务；**幂等**，可重复执行。
+
+需要填写 `agent/agent.json` 里的 `endpoint` / `token` / `device_id`：`token` 必须与
+服务端 `AGENT_TOKEN`（Pages secret）一致，`device_id` 必须对应 `uptime.config.ts`
+中的一台设备。
+
+**完整文档：[agent/README.md](agent/README.md)**
+
 ## ⭐功能
 
 - 开源，易于部署（全程无需本地工具，耗时不到 10 分钟），且完全免费

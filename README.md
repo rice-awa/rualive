@@ -11,6 +11,27 @@ A more advanced, serverless, and free uptime monitoring & status page solution, 
 
 New users can deploy directly, while existing users can have a simple auto migration process (upgrade docs below)! Feel free to open an issue if you run into any trouble deploying.
 
+## 🐱 Device Monitoring Agent (似了喵？)
+
+This fork adds **device presence & screen-time tracking** on top of UptimeFlare: a tiny
+agent runs on your PC/laptop and reports the active window + input-idle time to the
+status page every few seconds.
+
+| Platform | One-click install |
+|---|---|
+| Linux (KDE Plasma / Wayland) | `cd agent && bash install-linux.sh` |
+| Windows | `powershell -NoProfile -ExecutionPolicy Bypass -File agent\agent.ps1 -Install` |
+
+The Linux script auto-detects your environment (graphical session / Plasma version /
+distro), installs `kdotool`, deploys `agent.py` + config, and enables a `systemd --user`
+service. It is **idempotent** — safe to re-run.
+
+Fill in `endpoint` / `token` / `device_id` in `agent/agent.json`: `token` must match the
+server-side `AGENT_TOKEN` (Pages secret), and `device_id` must match a device entry in
+`uptime.config.ts`.
+
+**Full docs: [agent/README.md](agent/README.md)**
+
 ## ⭐Features
 
 - Open-source, easy to deploy (in under 10 minutes, no local tools required), and free

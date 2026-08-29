@@ -93,7 +93,8 @@ IDLE_MODE_NONE = 'none'             # 完全不可用，idle 恒为 0
 
 KDOTOOL_INSTALL_HINT = (
     '  kdotool 安装指引： https://github.com/jinliu/kdotool\n'
-    '  注意版本：v0.3.0+ 仅支持 Plasma 6；Plasma 5 用户需使用 v0.2.x。\n'
+    '  注意版本：v0.2.x 同时支持 Plasma 5 与 6（2026-04 的 v0.2.3 即当前最新）；\n'
+    '  未来的 v0.3.0+ 将只支持 Plasma 6。\n'
     '  安装后确认 `kdotool --version` 与 `kdotool getactivewindow` 可正常输出。'
 )
 
@@ -314,7 +315,9 @@ def probe_kdotool() -> Optional[str]:
         log_error(KDOTOOL_INSTALL_HINT)
         return None
 
-    log_info('kdotool 可用：{0}（{1}）'.format(stdout or '版本未知', path))
+    # kdotool --version 会输出整段 usage 帮助文本，只取第一行版本号，避免刷屏
+    version_line = stdout.splitlines()[0].strip() if stdout else '版本未知'
+    log_info('kdotool 可用：{0}（{1}）'.format(version_line, path))
     return path
 
 

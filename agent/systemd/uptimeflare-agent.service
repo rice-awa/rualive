@@ -13,6 +13,10 @@ Type=simple
 # 注意：systemd 不做 PATH 查找与 ~ 展开，ExecStart 必须是绝对路径。
 # 安装前请按实际路径修改下面两处（which python3 / agent.py 的真实位置）。
 ExecStart=/usr/bin/python3 %h/.local/share/uptimeflare-agent/agent.py
+# kdotool 装到 ~/.local/bin（install-linux.sh 的默认位置）时，必须显式把它加进 PATH，
+# 否则服务里 `kdotool` 找不到，Agent 会退化成 headless（只有心跳、无窗口信息）。
+# 手动把 kdotool 装到其它目录（如 /usr/local/bin）时可按需调整本行。
+Environment=PATH=%h/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 Restart=always
 RestartSec=5
 # 日志直接进 journal（脚本已按行 flush）
