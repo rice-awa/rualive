@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<!--
+  ⚠️ UI 原型（PROTOTYPE — throwaway，非生产代码，数据全部为本地 mock）
+
+  问题：「似了喵？」设备存活监控区（PRD F3/F4/F7/F8）应该长什么样？
+  三个结构不同的变体，通过底部悬浮条 / 键盘 ← → / URL ?variant= 切换：
+
+    A · 卡片墙 + 详情页 —— PRD F3 原案：横向动森卡片，点击进入 #device:<id> 详情
+                          （Tabs 今日/7天/30天 + 图表 + 口径说明）
+    B · 猫猫日记流 —— 无二级页：竖向横幅 + 对话气泡 + 内联展开统计（时间线优先）
+    C · 主设备指挥台 —— 主设备大仪表盘 + 其余设备侧栏磁贴（可点击聚焦）+ 表格优先
+
+  共同演示的 PRD 要点：
+    · 三态猫猫（活着喵！/ 在挂机喵… / 似了喵…）+ 打字机状态文案
+    · 公开 vs 需密钥分级（F7）：在线状态/最后活跃/今日总时长公开；
+      当前窗口标题与使用统计需 USAGE_API_KEY（localStorage 键 uf_usage_key）
+    · 与原 Mantine 风格监控列表共存（页面下方原样保留一块，便于检查样式冲突，F8 风险 #10）
+    · 设备配置差异：usageTracking=false 的 headless 设备不产生统计；
+      publicWindow=true 的设备窗口标题免密钥公开
+
+  演示密钥：meow-meow-meow-meow-meow-meow
+  左下「原型控制台」可实时切换设备在线/挂机/离线状态、清除密钥缓存。
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>似了喵？— UI 原型</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============ 动森全局预设（模拟 animal-island-ui/style 的全局效果） ============ */
+:root{
+  --paper:#F7EFDD; --paper-2:#FBF5E6; --ink:#4A3B2C; --ink-soft:#8A7A64; --ink-faint:#B3A48C;
+  --lime:#AFD46A; --lime-d:#8FB94E; --leaf:#7FB069;
+  --yellow:#F5D98B; --yellow-d:#D9B95F;
+  --orange:#F0A852; --blue:#9CD3E8; --pink:#F2A9A2; --red:#E07B6A;
+  --parch:#E9E0CC; --parch-d:#CFC2A6;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--paper);
+  background-image:radial-gradient(rgba(74,59,44,.055) 1.2px, transparent 1.2px);
+  background-size:24px 24px;
+  color:var(--ink);
+  font-family:'Nunito','Varela Round','Quicksand','Noto Sans SC','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+  padding-bottom:110px;
+}
+b{font-weight:800}
+code{background:rgba(74,59,44,.1);border-radius:6px;padding:1px 6px;font-size:.92em}
+#app{max-width:1060px;margin:0 auto;padding:22px 20px 0}
+
+/* ============ 通用动森元件 ============ */
+.btn{
+  font:inherit;font-weight:800;color:#fff;background:var(--leaf);
+  border:3px solid var(--ink);border-radius:999px;padding:7px 18px;cursor:pointer;
+  box-shadow:0 4px 0 var(--ink);transition:transform .06s,box-shadow .06s,filter .12s;
+}
+.btn:hover{filter:brightness(1.06)}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.btn--ghost{background:var(--paper-2);color:var(--ink)}
+.btn--orange{background:var(--orange)}
+.btn--sm{padding:4px 13px;border-width:2.5px;font-size:13px;box-shadow:0 3px 0 var(--ink)}
+.chip{
+  display:inline-block;background:rgba(255,255,255,.55);border:2px solid var(--ink);
+  border-radius:999px;font-size:11px;font-weight:800;padding:1px 9px;vertical-align:2px;
+}
+.panel{
+  background:var(--paper-2);border:3px solid var(--ink);border-radius:20px;
+  padding:16px 18px;box-shadow:0 5px 0 rgba(74,59,44,.22);
+}
+.panel-title{font-size:14px;font-weight:800;margin:0 0 12px}
+.muted{color:var(--ink-soft)}
+
+/* 打字机光标 */
+.tw-cursor::after{content:'▍';animation:blink 1s steps(1) infinite;color:var(--ink-soft)}
+@keyframes blink{50%{opacity:0}}
+
+/* ============ 猫猫 ============ */
+.cat{display:block;overflow:visible}
+.cat--online{animation:catBounce 2.6s ease-in-out infinite}
+@keyframes catBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.tailg{transform-box:view-box;transform-origin:88px 94px}
+.cat--online .tailg{animation:tailSway 3s ease-in-out infinite}
+.cat--idle .tailg{animation:tailSway 6.5s ease-in-out infinite}
+@keyframes tailSway{0%,100%{transform:rotate(0)}50%{transform:rotate(-9deg)}}
+.zz{font-family:inherit;font-weight:800;font-size:14px;fill:var(--ink-soft);animation:zFloat 2.6s ease-in-out infinite}
+.z2{animation-delay:1.3s}
+@keyframes zFloat{0%{opacity:0;transform:translateY(5px)}30%{opacity:1}100%{opacity:0;transform:translateY(-9px)}}
+.ln{stroke:#4A3B2C;stroke-width:2.4;fill:none;stroke-linecap:round}
+
+/* ============ 页头 / 总览 ============ */
+.phead{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
+.phead h1{font-size:22px;margin:0;font-weight:800}
+.phead h1 small{font-size:12px;font-weight:700;color:var(--ink-soft);margin-left:8px}
+.clock-pill{
+  background:var(--paper-2);border:2.5px solid var(--ink);border-radius:999px;
+  padding:5px 14px;font-weight:800;font-size:13px;box-shadow:0 3px 0 rgba(74,59,44,.25);
+}
+.ov-banner{
+  background:#D9EDB2;border:3px solid var(--ink);border-radius:16px;padding:10px 18px;
+  font-weight:800;box-shadow:0 4px 0 rgba(74,59,44,.22);font-size:14.5px;
+}
+.ov-banner small{font-weight:700;color:var(--ink-soft)}
+
+/* ============ 区域标题 / 叶子分隔 ============ */
+.area-head{display:flex;align-items:baseline;gap:12px;margin:30px 0 14px}
+.area-head h2{font-size:19px;margin:0;font-weight:800}
+.area-head .sub{font-size:12.5px;color:var(--ink-soft);font-weight:700}
+.leaf-div{display:flex;align-items:center;gap:12px;margin:36px 0 20px;color:var(--ink-soft);font-size:12.5px;font-weight:700;white-space:nowrap}
+.leaf-div::before,.leaf-div::after{content:'';flex:1;border-top:3px dashed rgba(74,59,44,.28)}
+
+/* ============ 变体 A · 卡片墙 ============ */
+.card-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
+.acard{
+  --cardbg:#CDE89B;--cardsh:#9DBE63;
+  display:flex;gap:14px;align-items:center;background:var(--cardbg);
+  border:3px solid var(--ink);border-radius:24px;padding:16px 18px;cursor:pointer;
+  box-shadow:0 6px 0 var(--cardsh);transition:transform .12s;position:relative;
+}
+.acard:hover{transform:translateY(-3px)}
+.acard--idle{--cardbg:#F5D98B;--cardsh:#D9B95F}
+.acard--offline{--cardbg:var(--parch);--cardsh:var(--parch-d)}
+.acard--offline .acard-name,.acard--offline .acard-meta{color:var(--ink-soft)}
+.acard-cat{width:92px;height:88px;flex:none}
+.acard-main{min-width:0;flex:1}
+.acard-status{font-size:21px;font-weight:800;line-height:1.2;min-height:26px}
+.acard-name{font-size:13.5px;font-weight:800;margin-top:3px}
+.acard-meta{font-size:12px;color:var(--ink-soft);font-weight:700;margin-top:4px}
+.win-line{
+  margin-top:9px;background:rgba(255,255,255,.5);border:2px solid var(--ink);
+  border-radius:12px;padding:5px 10px;font-size:12px;font-weight:700;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.lock-pill{
+  margin-top:9px;font:inherit;font-size:12px;font-weight:800;color:var(--ink-soft);
+  background:rgba(255,255,255,.35);border:2px dashed var(--ink-soft);border-radius:12px;
+  padding:5px 10px;cursor:pointer;width:100%;text-align:left;
+}
+.lock-pill:hover{color:var(--ink);border-color:var(--ink)}
+.acard-more{position:absolute;right:14px;top:12px;font-weight:800;color:rgba(74,59,44,.5);font-size:13px}
+
+/* ============ 变体 B · 日记流横幅 ============ */
+.banner{
+  --accent:var(--lime);display:flex;gap:18px;background:var(--paper-2);
+  border:3px solid var(--ink);border-radius:26px;padding:18px 20px 18px 30px;
+  box-shadow:0 6px 0 rgba(74,59,44,.2);position:relative;margin-bottom:18px;
+}
+.banner::before{content:'';position:absolute;left:0;top:16px;bottom:16px;width:11px;background:var(--accent);border-radius:0 9px 9px 0;border:2.5px solid var(--ink);border-left:none}
+.banner--idle{--accent:var(--yellow)}
+.banner--offline{--accent:var(--parch-d)}
+.banner-cat{width:110px;height:105px;flex:none}
+.banner-main{flex:1;min-width:0}
+.banner-status{font-size:24px;font-weight:800;min-height:28px}
+.banner-name{font-size:13.5px;font-weight:800;margin-top:2px}
+.bubble{
+  position:relative;margin-top:10px;background:#fff;border:2.5px solid var(--ink);
+  border-radius:15px;padding:7px 13px;font-size:12.5px;font-weight:700;max-width:560px;
+}
+.bubble::before{
+  content:'';position:absolute;left:-11px;top:14px;width:12px;height:12px;background:#fff;
+  border-left:2.5px solid var(--ink);border-bottom:2.5px solid var(--ink);transform:rotate(45deg);
+}
+.bubble--locked{
+  color:var(--ink-soft);border-style:dashed;background:rgba(255,255,255,.4);
+  cursor:pointer;font-weight:800;
+}
+.bubble--locked:hover{color:var(--ink);border-color:var(--ink)}
+.bubble--locked::before{border-style:dashed;background:rgba(255,255,255,.4)}
+.banner-meta{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12px;color:var(--ink-soft);font-weight:700;margin-top:10px;align-items:center}
+.spark{width:110px;height:26px;display:inline-block;vertical-align:-8px}
+.bpanel{margin-top:12px;border-top:2.5px dashed rgba(74,59,44,.3);padding-top:12px}
+.bpanel .row{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+.bpanel .row>div{flex:1;min-width:220px}
+.bpanel-lock{display:flex;align-items:center;gap:12px;font-weight:800;color:var(--ink-soft)}
+
+/* ============ 变体 C · 指挥台 ============ */
+.dash{display:grid;grid-template-columns:1fr 250px;gap:18px}
+@media (max-width:820px){.dash{grid-template-columns:1fr}}
+.hero{
+  background:var(--paper-2);border:3px solid var(--ink);border-radius:28px;
+  padding:24px 26px;box-shadow:0 8px 0 rgba(74,59,44,.22);
+}
+.hero-top{display:flex;gap:24px;align-items:center}
+.hero-cat{width:165px;height:158px;flex:none}
+.hero-status{font-size:33px;font-weight:800;line-height:1.15;min-height:38px}
+.hero-name{font-size:14px;font-weight:800;margin-top:4px}
+.hero-stats{display:flex;gap:16px;flex-wrap:wrap;margin-top:18px;align-items:stretch}
+.stat-box{flex:1;min-width:150px;background:rgba(255,255,255,.5);border:2.5px solid var(--ink);border-radius:16px;padding:10px 14px}
+.stat-box .lbl{font-size:11.5px;font-weight:800;color:var(--ink-soft)}
+.stat-box .val{font-size:24px;font-weight:800;margin-top:2px}
+.side-tile{
+  background:var(--paper-2);border:2.5px solid var(--ink);border-radius:18px;padding:10px 12px;
+  display:flex;gap:10px;align-items:center;cursor:pointer;box-shadow:0 4px 0 rgba(74,59,44,.2);
+  margin-bottom:12px;transition:transform .1s;
+}
+.side-tile:hover{transform:translateY(-2px)}
+.side-tile .tile-cat{width:46px;height:44px;flex:none}
+.side-tile .tile-name{font-size:12.5px;font-weight:800}
+.side-tile .tile-meta{font-size:11px;color:var(--ink-soft);font-weight:700;margin-top:1px}
+.rank-table{width:100%;border-collapse:collapse;font-size:13px;font-weight:700}
+.rank-table td{padding:5px 8px;border-bottom:2px dashed rgba(74,59,44,.18)}
+.rank-table tr:last-child td{border-bottom:none}
+.rank-table .rk{width:26px;color:var(--ink-soft)}
+.rank-table .du{width:96px;text-align:right;white-space:nowrap}
+.bar-track{background:rgba(74,59,44,.08);border-radius:999px;height:17px;overflow:hidden}
+.bar-fill{height:100%;border-radius:999px;border:2px solid rgba(74,59,44,.6);min-width:4px}
+.lock-panel{display:flex;flex-direction:column;align-items:center;gap:10px;padding:26px 10px;text-align:center}
+.lock-panel .big{font-size:30px}
+.mtable{width:100%;border-collapse:collapse;font-size:13px;font-weight:700}
+.mtable td{padding:8px 10px;border-bottom:2px dashed rgba(74,59,44,.18)}
+.mtable tr:last-child td{border-bottom:none}
+.mtable .dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#3fb950;margin-right:6px}
+
+/* ============ 设备详情（变体 A） ============ */
+.detail{position:fixed;inset:0;background:var(--paper);z-index:100;overflow:auto;padding:24px 20px 90px;
+  background-image:radial-gradient(rgba(74,59,44,.055) 1.2px, transparent 1.2px);background-size:24px 24px}
+.detail-inner{max-width:960px;margin:0 auto}
+.detail-head{display:flex;gap:16px;align-items:center}
+.detail-head .cat{width:78px;height:74px;flex:none}
+.detail-head h2{margin:0;font-size:22px;font-weight:800}
+.detail-head .sub{font-size:12.5px;color:var(--ink-soft);font-weight:700;margin-top:2px}
+.detail-head .spacer{flex:1}
+.tabs{display:flex;gap:10px;margin:20px 0 16px;flex-wrap:wrap}
+.tab{
+  font:inherit;font-weight:800;font-size:14px;color:var(--ink);background:var(--paper-2);
+  border:2.5px solid var(--ink);border-radius:999px;padding:6px 18px;cursor:pointer;
+}
+.tab.on{background:var(--leaf);color:#fff;box-shadow:0 3px 0 var(--ink)}
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media (max-width:760px){.chart-grid{grid-template-columns:1fr}}
+details.collapse{
+  margin-top:18px;border:2.5px dashed rgba(74,59,44,.4);border-radius:14px;
+  padding:10px 16px;font-size:13px;color:var(--ink-soft);font-weight:600;line-height:1.8;
+}
+details.collapse summary{cursor:pointer;font-weight:800;color:var(--ink)}
+.app-bars .bar-row{display:grid;grid-template-columns:minmax(90px,170px) 1fr 92px;gap:10px;align-items:center;margin:8px 0;font-size:13px;font-weight:700}
+.app-bars .bar-row .app{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.app-bars .bar-row .du{text-align:right;color:var(--ink-soft);font-size:12px;white-space:nowrap}
+
+/* ============ 图表 ============ */
+.hchart .hcols{display:flex;align-items:flex-end;gap:3px;height:118px}
+.hchart--sm .hcols{height:58px}
+.hcol{flex:1;background:var(--lime);border-radius:4px 4px 2px 2px;min-height:2px}
+.hcol:hover{filter:brightness(.93)}
+.hcol.now{outline:2.5px solid var(--ink);outline-offset:1px}
+.hlabels{display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink-soft);font-weight:700;margin-top:4px}
+.dchart .dcols{display:flex;align-items:flex-end;gap:5px;height:130px}
+.dchart .dcol{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end}
+.dchart .dcol i{display:block;width:100%;max-width:26px;background:var(--lime);border:2px solid rgba(74,59,44,.6);border-radius:6px 6px 3px 3px}
+.dchart .dlabels{display:flex;gap:5px;margin-top:5px}
+.dchart .dlabels span{flex:1;text-align:center;font-size:10px;color:var(--ink-soft);font-weight:700}
+
+/* ============ Mantine 风格监控区（模拟现有 UptimeFlare，保持原样） ============ */
+.mz{font-family:system-ui,-apple-system,'Segoe UI',Roboto,'PingFang SC','Microsoft YaHei',sans-serif;color:#1f1f1f}
+.mz-banner{background:#ebfbf0;border:1px solid #b3e6c4;color:#1d7a3e;border-radius:8px;padding:10px 16px;font-weight:600;font-size:14px}
+.mz-note{text-align:center;font-size:11.5px;color:#999;margin:10px 0 12px}
+.mz .mcard{background:#fff;border:1px solid #e3e3e3;border-radius:8px;padding:12px 16px;margin-bottom:8px;display:flex;align-items:center;gap:14px}
+.mz .dot{width:10px;height:10px;border-radius:50%;background:#40c057;flex:none}
+.mz .mname{font-weight:600;font-size:14px}
+.mz .murl{font-size:12px;color:#888}
+.mz .mstat{font-size:12px;color:#666;white-space:nowrap}
+.mz .strip{display:flex;gap:2px;align-items:center;flex:1;min-width:80px}
+.mz .strip i{width:3px;height:15px;border-radius:1px;background:#40c057;opacity:.85}
+.mz .strip i.w{background:#fab005}
+.mz .mup{font-size:12px;color:#666;white-space:nowrap}
+
+.pfoot{text-align:center;color:var(--ink-soft);font-size:12px;font-weight:700;margin:44px 0 10px}
+
+/* ============ 弹窗 / 提示 ============ */
+.overlay{position:fixed;inset:0;background:rgba(60,48,32,.45);z-index:110;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{
+  background:var(--paper-2);border:3px solid var(--ink);border-radius:24px;padding:22px 24px;
+  width:min(430px,100%);box-shadow:0 8px 0 rgba(41,32,22,.55);
+}
+.modal-tw{font-size:15.5px;font-weight:800;min-height:24px;margin-bottom:14px}
+.modal input{
+  width:100%;font:inherit;font-size:14px;font-weight:700;padding:9px 14px;color:var(--ink);
+  background:#fff;border:2.5px solid var(--ink);border-radius:14px;outline:none;
+}
+.modal input:focus{box-shadow:0 0 0 3px rgba(175,212,106,.6)}
+.modal-err{color:var(--red);font-weight:800;font-size:13px;margin-top:8px}
+.modal-hint{font-size:12px;color:var(--ink-soft);font-weight:700;margin-top:10px;line-height:1.7}
+.modal-btns{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
+.modal.shake{animation:shake .4s}
+@keyframes shake{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+.toast{
+  position:fixed;top:18px;left:50%;transform:translateX(-50%) translateY(-8px);z-index:120;
+  background:var(--paper-2);border:3px solid var(--ink);border-radius:999px;padding:9px 22px;
+  font-weight:800;font-size:14px;box-shadow:0 4px 0 rgba(41,32,22,.5);
+  opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ============ 原型工具（不属于设计本身） ============ */
+.proto-bar{
+  position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:90;
+  display:flex;align-items:center;gap:10px;background:#2E2A24;color:#F7EFDD;
+  border-radius:999px;padding:8px 12px;box-shadow:0 10px 26px rgba(0,0,0,.4);
+}
+.proto-bar button{
+  font:inherit;font-weight:800;font-size:16px;width:34px;height:34px;border-radius:50%;
+  border:2px solid #F7EFDD;background:transparent;color:#F7EFDD;cursor:pointer;line-height:1;
+}
+.proto-bar button:hover{background:rgba(247,239,221,.18)}
+.pb-label{font-size:13.5px;font-weight:700;min-width:210px;text-align:center}
+.pb-label b{font-size:15px}
+.proto-hint{
+  position:fixed;bottom:66px;left:50%;transform:translateX(-50%);z-index:89;
+  font-size:11px;color:rgba(74,59,44,.55);font-weight:700;
+}
+.mock-panel{
+  position:fixed;left:14px;bottom:18px;z-index:85;width:262px;
+  background:var(--paper-2);border:3px solid var(--ink);border-radius:16px;
+  box-shadow:0 5px 0 rgba(41,32,22,.35);font-size:12.5px;overflow:hidden;
+}
+.mock-head{padding:8px 13px;font-weight:800;cursor:pointer;user-select:none;display:flex;justify-content:space-between;align-items:center}
+.mock-body{padding:4px 13px 12px;border-top:2.5px dashed rgba(74,59,44,.3)}
+.mock-row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px;font-weight:700}
+.mock-row .seg{display:flex;gap:4px}
+.mock-row .seg button{
+  font:inherit;font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;cursor:pointer;
+  border:2px solid var(--ink-soft);background:transparent;color:var(--ink-soft);
+}
+.mock-row .seg button.on{border-color:var(--ink);color:#fff}
+.mock-row .seg button.on.st-online{background:var(--leaf)}
+.mock-row .seg button.on.st-idle{background:var(--yellow-d)}
+.mock-row .seg button.on.st-offline{background:#8D8578}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast"></div>
+<div id="modal-root"></div>
+
+<!-- 原型变体切换悬浮条（不属于页面设计） -->
+<div class="proto-hint">← → 切换原型变体 · 页面数据均为本地 mock</div>
+<nav class="proto-bar">
+  <button id="pbPrev" title="上一个变体">←</button>
+  <div class="pb-label" id="pbLabel"></div>
+  <button id="pbNext" title="下一个变体">→</button>
+</nav>
+
+<!-- 原型控制台：模拟 Agent 心跳状态翻转 / 清除密钥缓存 -->
+<aside class="mock-panel" id="mockPanel">
+  <div class="mock-head" onclick="toggleMock()">🛠 原型控制台 <span id="mockChev">▾</span></div>
+  <div class="mock-body" id="mockBody"></div>
+</aside>
+
+<script>
+'use strict';
+/* ================= 原型 mock 数据（内存态，无持久化；密钥缓存除外，见 F7） ================= */
+var LS_KEY = 'uf_usage_key';
+var DEMO_KEY = 'meow-meow-meow-meow-meow-meow';
+var STATE_TXT = { online: '活着喵！', idle: '在挂机喵…', offline: '似了喵…' };
+var PALETTE = ['#AFD46A','#F0A852','#9CD3E8','#F2A9A2','#F5D98B','#8FD3B6','#C9A6E8','#E8C39A','#A8C6E8','#F0BFBF'];
+
+var S = {
+  variant: 'A',
+  now: Math.floor(Date.now() / 1000),
+  key: localStorage.getItem(LS_KEY),
+  detailDevice: null,
+  detailTab: 'today',
+  primary: 'riceawa-desktop',
+  expanded: {},
+  modalOpen: false,
+  devices: [
+    { id:'riceawa-desktop', name:'Riceawa 的台式机', os:'Windows 11', state:'online',
+      title:'PRD.md - Visual Studio Code', app:'Code.exe',
+      usageTracking:true, publicWindow:false, hasWindow:true, today:18120 },
+    { id:'riceawa-laptop', name:'Riceawa 的笔记本', os:'KDE Plasma 6 · Wayland', state:'idle',
+      title:'未命名文件夹 - Dolphin', app:'org.kde.dolphin',
+      usageTracking:true, publicWindow:true, hasWindow:true, today:8100 },
+    { id:'homelab-nas', name:'家里的 NAS', os:'Debian 12', state:'online',
+      title:'', app:'', usageTracking:false, publicWindow:false, hasWindow:false, today:null },
+  ],
+  monitors: [
+    { name:'主页', url:'https://riceawa.moe', ms:32, uptime:'100%', warn:false },
+    { name:'博客', url:'https://blog.riceawa.moe', ms:58, uptime:'99.98%', warn:false },
+    { name:'UptimeKuma', url:'https://kuma.riceawa.moe', ms:121, uptime:'99.90%', warn:true },
+  ],
+};
+S.devices.forEach(function (d) {
+  d.lastSeen = S.now - (d.state === 'offline' ? 165 : 6);
+});
+function dev(id) { return S.devices.find(function (d) { return d.id === id; }); }
+
+/* 今日 by_app（与 usage_daily 聚合对应；today 总时长 = 各 app 之和，保证口径一致） */
+var BY_APP = {
+  'riceawa-desktop': { 'Code.exe':7200, 'firefox':3600, 'kitty':2280, 'org.telegram.desktop':1620, 'org.kde.dolphin':1260, 'org.kde.konsole':900, 'spotify':540, 'steam':420, 'obsidian':300 },
+  'riceawa-laptop': { 'firefox':5100, 'org.kde.dolphin':1800, 'org.telegram.desktop':780, 'kitty':420 },
+};
+/* 24h 活跃分布权重（渲染时按今日总时长归一化） */
+var HOURLY_W = {
+  'riceawa-desktop': [150,60,0,0,0,0,0,0,900,1500,1400,1200,300,700,1400,1600,1300,1200,1400,1700,1600,1400,1000,500],
+  'riceawa-laptop':  [600,300,0,0,0,0,0,0,300,600,900,1200,900,600,900,1200,1500,1200,900,600,600,900,1200,600],
+};
+/* 近 30 天（不含今天），固定种子伪随机，多次渲染稳定 */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+var rnd = mulberry32(20260829);
+function genDays(n, scale) {
+  var out = [];
+  for (var i = n; i >= 1; i--) {
+    var dt = new Date((S.now - i * 86400) * 1000);
+    var dow = dt.getDay();
+    var base = (4.8 + rnd() * 3.4 + (dow === 0 || dow === 6 ? 1.4 : 0)) * scale;
+    out.push({ date: (dt.getMonth()+1)+'/'+dt.getDate(), dow: dow, total: Math.round(base*3600/600)*600 });
+  }
+  return out;
+}
+var DAYS30 = { 'riceawa-desktop': genDays(30,1), 'riceawa-laptop': genDays(30,0.55) };
+function daysFor(d, n) {
+  var base = (DAYS30[d.id] || []).slice(-(n - 1));
+  base.push({ date:'今天', dow:new Date(S.now*1000).getDay(), total: d.today || 0 });
+  return base;
+}
+function hourlyToday(d) {
+  var w = HOURLY_W[d.id]; if (!w) return null;
+  var total = 0, app = BY_APP[d.id] || {};
+  for (var k in app) total += app[k];
+  var sum = w.reduce(function(a,b){return a+b;},0) || 1;
+  return w.map(function (v) { return Math.round(v / sum * total); });
+}
+
+/* ================= 小工具 ================= */
+function pad(n){ return String(n).padStart(2,'0'); }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmtDur(s){
+  if (s == null) return '—';
+  s = Math.round(s);
+  if (s < 60) return s + ' 秒';
+  var m = Math.floor(s/60);
+  if (m < 60) return m + ' 分';
+  return Math.floor(m/60) + ' 小时 ' + (m%60) + ' 分';
+}
+function fmtRel(ts){
+  var dsec = S.now - ts;
+  if (dsec < 15) return '刚刚';
+  if (dsec < 60) return dsec + ' 秒前';
+  if (dsec < 3600) return Math.floor(dsec/60) + ' 分钟前';
+  return Math.floor(dsec/3600) + ' 小时前';
+}
+function fmtClock(ts){
+  var dt = new Date(ts*1000);
+  return pad(dt.getHours())+':'+pad(dt.getMinutes())+':'+pad(dt.getSeconds());
+}
+function appLabel(a){ return a === 'org.kde.dolphin' ? 'Dolphin' : a; }
+var lastTw = {};
+function typewrite(el){
+  var text = el.dataset.tw; if (!text) return;
+  if (el._t) clearInterval(el._t);
+  if (lastTw[el.dataset.twkey] === text) { el.textContent = text; return; }  // 状态没变时不重打
+  el.textContent = ''; el.classList.add('tw-cursor');
+  var i = 0;
+  el._t = setInterval(function(){
+    i++; el.textContent = text.slice(0, i);
+    if (i >= text.length) { clearInterval(el._t); el.classList.remove('tw-cursor'); lastTw[el.dataset.twkey] = text; }
+  }, 65);
+}
+
+/* ================= 猫猫 SVG（动森风：圆角 + 描边 + 扁平；三态自制） ================= */
+function catSVG(state){
+  var c = state==='online' ? {body:'#AFD46A',ear:'#F2A9A2'}
+        : state==='idle'   ? {body:'#CFC7B8',ear:'#E3CFC9'}
+        :                    {body:'#A79D8D',ear:'#C9BDB2'};
+  var eyes;
+  if (state==='online') {
+    eyes = '<circle cx="50" cy="47" r="3.4" fill="#3A2E22"/><circle cx="70" cy="47" r="3.4" fill="#3A2E22"/>'
+         + '<circle cx="51.4" cy="45.6" r="1.2" fill="#fff"/><circle cx="71.4" cy="45.6" r="1.2" fill="#fff"/>';
+  } else if (state==='idle') {
+    eyes = '<path class="ln" d="M45.5 47 q4.5 4.5 9 0"/><path class="ln" d="M65.5 47 q4.5 4.5 9 0"/>';
+  } else {
+    eyes = '<path class="ln" d="M46.5 44 l7 7 M53.5 44 l-7 7"/><path class="ln" d="M66.5 44 l7 7 M73.5 44 l-7 7"/>';
+  }
+  var halo  = state==='offline' ? '<ellipse cx="60" cy="12" rx="11" ry="3.6" fill="none" stroke="#E7C766" stroke-width="3"/>' : '';
+  var wings = state==='offline'
+    ? '<ellipse cx="28" cy="84" rx="7.5" ry="14" fill="#FFF9EC" stroke="#4A3B2C" stroke-width="3" transform="rotate(-30 28 84)"/>'
+    + '<ellipse cx="92" cy="84" rx="7.5" ry="14" fill="#FFF9EC" stroke="#4A3B2C" stroke-width="3" transform="rotate(30 92 84)"/>' : '';
+  var blush = state==='online' ? '<circle cx="43" cy="56" r="3.2" fill="#F2A9A2" opacity=".55"/><circle cx="77" cy="56" r="3.2" fill="#F2A9A2" opacity=".55"/>' : '';
+  var zz    = state==='idle' ? '<text class="zz z1" x="87" y="32">z</text><text class="zz z2" x="96" y="21">z</text>' : '';
+  return '<svg class="cat cat--' + state + '" viewBox="0 0 120 112" xmlns="http://www.w3.org/2000/svg">'
+    + halo + wings
+    + '<g class="tailg"><path d="M88 94 Q110 90 105 66" fill="none" stroke="' + c.body + '" stroke-width="9" stroke-linecap="round"/></g>'
+    + '<ellipse cx="60" cy="90" rx="29" ry="20" fill="' + c.body + '" stroke="#4A3B2C" stroke-width="3.5"/>'
+    + '<ellipse cx="60" cy="95" rx="13" ry="8" fill="#F7EFDD" opacity=".75"/>'
+    + '<path d="M38 34 L33 13 L54 26 Z" fill="' + c.body + '" stroke="#4A3B2C" stroke-width="3.5" stroke-linejoin="round"/>'
+    + '<path d="M82 34 L87 13 L66 26 Z" fill="' + c.body + '" stroke="#4A3B2C" stroke-width="3.5" stroke-linejoin="round"/>'
+    + '<path d="M40 24.5 L36.5 16.5 L45.5 22 Z" fill="' + c.ear + '"/><path d="M80 24.5 L83.5 16.5 L74.5 22 Z" fill="' + c.ear + '"/>'
+    + '<circle cx="60" cy="50" r="27" fill="' + c.body + '" stroke="#4A3B2C" stroke-width="3.5"/>'
+    + eyes
+    + '<path d="M57.5 53 L62.5 53 L60 56.5 Z" fill="#E58B8B" stroke="#4A3B2C" stroke-width="1.4" stroke-linejoin="round"/>'
+    + '<path class="ln" d="M55 60 q2.5 3.2 5 0 q2.5 3.2 5 0"/>'
+    + '<path class="ln" d="M32 48 L15 44 M32 54 L15 57"/><path class="ln" d="M88 48 L105 44 M88 54 L105 57"/>'
+    + blush + zz + '</svg>';
+}
+
+/* ================= 图表（手绘 div/svg，动森色板） ================= */
+function appBars(d, top){
+  var app = BY_APP[d.id]; if (!app) return '';
+  var rows = Object.keys(app).map(function(k){ return [k, app[k]]; })
+    .sort(function(a,b){ return b[1]-a[1]; }).slice(0, top || 10);
+  var max = rows[0][1];
+  return '<div class="app-bars">' + rows.map(function(r, i){
+    return '<div class="bar-row"><span class="app" title="' + esc(r[0]) + '">' + esc(appLabel(r[0])) + '</span>'
+      + '<div class="bar-track"><div class="bar-fill" style="width:' + Math.max(3, r[1]/max*100) + '%;background:' + PALETTE[i % PALETTE.length] + '"></div></div>'
+      + '<span class="du">' + fmtDur(r[1]) + '</span></div>';
+  }).join('') + '</div>';
+}
+function hourlyChart(d, compact){
+  var vals = hourlyToday(d); if (!vals) return '';
+  var max = Math.max.apply(null, vals.concat([1]));
+  var cur = new Date(S.now*1000).getHours();
+  var cols = vals.map(function(v, h){
+    return '<div class="hcol' + (h===cur ? ' now' : '') + '" style="height:' + Math.max(2, v/max*100) + '%" title="' + h + ' 时 · ' + fmtDur(v) + '"></div>';
+  }).join('');
+  return '<div class="hchart' + (compact ? ' hchart--sm' : '') + '"><div class="hcols">' + cols + '</div>'
+    + '<div class="hlabels"><span>0 时</span><span>6</span><span>12</span><span>18</span><span>23</span></div></div>';
+}
+function dailyChart(d, n){
+  var days = daysFor(d, n); if (!days.length) return '';
+  var max = Math.max.apply(null, days.map(function(x){return x.total;}).concat([1]));
+  var DOW = '日一二三四五六';
+  var cols = days.map(function(x, i){
+    return '<div class="dcol"><i style="height:' + Math.max(3, x.total/max*100) + '%" title="' + x.date + ' · ' + fmtDur(x.total) + '"></i></div>';
+  }).join('');
+  var labels = days.map(function(x, i){
+    var show = n <= 7 || (i % 5 === 0) || i === days.length - 1;
+    return '<span>' + (show ? (x.date === '今天' ? '今天' : (n <= 7 ? DOW[x.dow] : x.date)) : '') + '</span>';
+  }).join('');
+  var avg = days.reduce(function(a,b){return a+b.total;},0) / days.length;
+  return '<div class="dchart"><div class="dcols">' + cols + '</div><div class="dlabels">' + labels + '</div>'
+    + '<div style="font-size:12px;color:var(--ink-soft);font-weight:700;margin-top:8px">日均 ' + fmtDur(avg) + '</div></div>';
+}
+function sparkline(d){
+  var days = daysFor(d, 7);
+  var vals = days.map(function(x){return x.total;});
+  var max = Math.max.apply(null, vals.concat([1]));
+  var pts = vals.map(function(v, i){
+    return (i/(vals.length-1)*100).toFixed(1) + ',' + (26 - v/max*22).toFixed(1);
+  }).join(' ');
+  return '<svg class="spark" viewBox="0 0 100 28" preserveAspectRatio="none"><polyline points="' + pts
+    + '" fill="none" stroke="#8FB94E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+function collapseNote(){
+  return '<details class="collapse"><summary>📏 数据口径说明</summary>'
+    + '· 一条心跳计入时长的条件：收到心跳时输入空闲 &lt; 120 秒（挂机不计入）<br>'
+    + '· 时长按心跳间隔计入（30 秒/次），丢包不计入，天然容忍误差<br>'
+    + '· 长期聚合只到应用（app）粒度；窗口标题仅保留 14 天原始采样<br>'
+    + '· 按服务端时间戳记账，按 Asia/Shanghai 切日</details>';
+}
+
+/* ================= 公开 vs 需密钥的字段渲染（F7） ================= */
+function windowLine(d){
+  if (!d.hasWindow) return '<div class="win-line muted">💤 无图形会话（headless，仅心跳）</div>';
+  if (S.key || d.publicWindow)
+    return '<div class="win-line">💬 <b>' + esc(appLabel(d.app)) + '</b> · ' + esc(d.title) + (d.publicWindow && !S.key ? ' <span class="chip" title="publicWindow: true">公开</span>' : '') + '</div>';
+  return '<button class="lock-pill" onclick="openModal()">🔒 输入密钥查看当前窗口</button>';
+}
+function lockPanel(what){
+  return '<div class="lock-panel"><div class="big">🔒</div>'
+    + '<div style="font-weight:800">' + what + '已用 USAGE_API_KEY 保护</div>'
+    + '<div class="muted" style="font-size:12px">访客只能看到在线状态、最后活跃与今日总时长</div>'
+    + '<button class="btn btn--sm" onclick="openModal()">输入密钥解锁</button></div>';
+}
+
+/* ================= 共享区块：页头 / 总览 / 原监控列表（模拟 Mantine，保持不动） ================= */
+function pageHeader(){
+  return '<header class="phead"><h1>🐾 Riceawa 的状态页<small>似了喵？原型</small></h1>'
+    + '<div class="clock-pill">现在 <span data-clock>' + fmtClock(S.now) + '</span></div></header>';
+}
+function overallStatus(){
+  return '<div class="ov-banner">✓ 所有监控运行正常 <small>· 总体状态（现有组件，未改动）</small></div>';
+}
+function leafDivider(txt){
+  return '<div class="leaf-div"><span>🍃 ' + txt + '</span></div>';
+}
+function monitorZone(){
+  return '<section class="mz">'
+    + '<div class="mz-banner">✓ 所有监控运行正常（UptimeFlare 现有区块，Mantine 风格保持原样）</div>'
+    + '<div class="mz-note">— 以下为原有 HTTP 探测监控，与设备区共存于同一页面 —</div>'
+    + S.monitors.map(function(m){
+        var bars = '';
+        for (var i = 0; i < 40; i++) bars += '<i class="' + (m.warn && (i===12||i===13) ? 'w' : '') + '"></i>';
+        return '<div class="mcard"><span class="dot"></span><div style="min-width:150px"><div class="mname">' + m.name
+          + '</div><div class="murl">' + m.url + '</div></div><div class="strip">' + bars + '</div>'
+          + '<div class="mstat">200 OK · ' + m.ms + ' ms</div><div class="mup">90 天可用率 ' + m.uptime + '</div></div>';
+      }).join('')
+    + '</section>';
+}
+function pageFooter(){
+  return '<div class="pfoot">UptimeFlare × 似了喵？— UI 原型 · 数据为本地 mock · 非生产代码</div>';
+}
+
+/* ================= 变体 A：卡片墙 + 详情页（PRD F3 原案） ================= */
+function renderA(app){
+  var cards = S.devices.map(function(d){
+    return '<article class="acard acard--' + d.state + '" onclick="goDetail(\'' + d.id + '\')">'
+      + '<div class="acard-cat">' + catSVG(d.state) + '</div>'
+      + '<div class="acard-main">'
+      + '<div class="acard-status"><span data-tw="' + STATE_TXT[d.state] + '" data-twkey="A:' + d.id + '"></span></div>'
+      + '<div class="acard-name">' + esc(d.name) + ' <span class="chip">' + esc(d.os) + '</span></div>'
+      + '<div class="acard-meta">最后心跳 <b data-rel="' + d.id + '">' + fmtRel(d.lastSeen) + '</b>'
+      + (d.usageTracking ? ' · 今日活跃 <b data-total="' + d.id + '">' + fmtDur(d.today) + '</b>' : ' · 未开启使用统计')
+      + '</div>'
+      + windowLine(d)
+      + '</div><span class="acard-more">详情 →</span></article>';
+  }).join('');
+  app.innerHTML += '<div class="area-head"><h2>🐱 似了喵？</h2><span class="sub">设备存活监控 · 心跳每 30 秒 · 点击卡片看使用统计</span></div>'
+    + '<div class="card-row">' + cards + '</div>';
+}
+function detailOverlay(){
+  var d = dev(S.detailDevice); if (!d) return '';
+  var tab = S.detailTab;
+  var tabs = d.usageTracking
+    ? '<div class="tabs">'
+      + '<button class="tab' + (tab==='today'?' on':'') + '" onclick="setTab(\'today\')">今日</button>'
+      + '<button class="tab' + (tab==='7d'?' on':'') + '" onclick="setTab(\'7d\')">近 7 天</button>'
+      + '<button class="tab' + (tab==='30d'?' on':'') + '" onclick="setTab(\'30d\')">近 30 天</button></div>'
+    : '';
+  var body;
+  if (!d.usageTracking) {
+    body = '<div class="panel lock-panel"><div class="big">📴</div><div style="font-weight:800">该设备未开启使用统计（usageTracking: false）</div>'
+      + '<div class="muted" style="font-size:12.5px">仅上报心跳与在线判定，不产生任何使用记录</div></div>';
+  } else if (!S.key) {
+    body = '<div class="panel">' + lockPanel('使用统计') + '</div>';
+  } else if (tab === 'today') {
+    body = '<div class="chart-grid"><div class="panel"><h3 class="panel-title">🏆 今日应用排行 Top 10</h3>' + appBars(d) + '</div>'
+      + '<div class="panel"><h3 class="panel-title">🕐 24 小时时间线</h3>' + hourlyChart(d) + '</div></div>' + collapseNote();
+  } else {
+    body = '<div class="panel"><h3 class="panel-title">' + (tab==='7d' ? '📈 近 7 天每日活跃时长' : '📈 近 30 天每日活跃时长') + '</h3>'
+      + dailyChart(d, tab==='7d' ? 7 : 30) + '</div>' + collapseNote();
+  }
+  return '<div class="detail"><div class="detail-inner">'
+    + '<button class="btn btn--ghost btn--sm" onclick="goBack()">← 返回状态页</button>'
+    + '<div class="detail-head" style="margin-top:16px">'
+    + catSVG(d.state)
+    + '<div><h2>' + esc(d.name) + ' <span class="chip">' + esc(d.os) + '</span></h2>'
+    + '<div class="sub"><span data-tw="' + STATE_TXT[d.state] + '" data-twkey="D:' + d.id + '"></span>'
+    + ' · 最后心跳 <b data-rel="' + d.id + '">' + fmtRel(d.lastSeen) + '</b>'
+    + (d.usageTracking ? ' · 今日活跃 <b data-total="' + d.id + '">' + fmtDur(d.today) + '</b>' : ' · 未开启使用统计') + '</div></div>'
+    + '<span class="spacer"></span>'
+    + (S.key ? '<button class="btn btn--sm" onclick="lockKey()">🔓 已解锁 · 点此锁定</button>'
+             : '<button class="btn btn--orange btn--sm" onclick="openModal()">🔒 输入密钥解锁</button>')
+    + '</div>'
+    + (windowLine(d).indexOf('lock-pill') === -1
+        ? '<div style="margin-top:14px;max-width:560px">' + windowLine(d) + '</div>' : '')
+    + tabs + body
+    + '</div></div>';
+}
+
+/* ================= 变体 B：猫猫日记流（无二级页，时间线优先） ================= */
+function renderB(app){
+  var banners = S.devices.map(function(d){
+    var bubble;
+    if (!d.hasWindow) bubble = '<div class="bubble muted">（本喵是无头服务器，没有窗口喵）</div>';
+    else if (S.key || d.publicWindow) bubble = '<div class="bubble">本喵正在用 <b>' + esc(appLabel(d.app)) + '</b>：' + esc(d.title) + '</div>';
+    else bubble = '<div class="bubble bubble--locked" onclick="openModal()">（喵？窗口标题保密中 🔒 点我解锁）</div>';
+    var panel;
+    if (!d.usageTracking) panel = '<div class="bpanel muted" style="font-weight:700">该设备未开启使用统计（usageTracking: false）</div>';
+    else if (!S.key) panel = '<div class="bpanel"><div class="bpanel-lock">🔒 使用统计已用密钥保护 <span class="spacer" style="flex:1"></span><button class="btn btn--sm" onclick="openModal()">解锁</button></div></div>';
+    else panel = '<div class="bpanel"><div class="row">'
+      + '<div><div style="font-size:12px;font-weight:800;color:var(--ink-soft);margin-bottom:6px">🕐 今日 24 小时</div>' + hourlyChart(d, true) + '</div>'
+      + '<div><div style="font-size:12px;font-weight:800;color:var(--ink-soft);margin-bottom:6px">🏆 今日 Top 3</div>' + appBars(d, 3) + '</div>'
+      + '</div></div>';
+    var exp = S.expanded[d.id];
+    return '<article class="banner banner--' + d.state + '">'
+      + '<div class="banner-cat">' + catSVG(d.state) + '</div>'
+      + '<div class="banner-main">'
+      + '<div class="banner-status"><span data-tw="' + STATE_TXT[d.state] + '" data-twkey="B:' + d.id + '"></span></div>'
+      + '<div class="banner-name">' + esc(d.name) + ' <span class="chip">' + esc(d.os) + '</span></div>'
+      + bubble
+      + '<div class="banner-meta"><span>最后心跳 <b data-rel="' + d.id + '">' + fmtRel(d.lastSeen) + '</b></span>'
+      + (d.usageTracking ? '<span>今日活跃 <b data-total="' + d.id + '">' + fmtDur(d.today) + '</b></span><span>7 天趋势 ' + sparkline(d) + '</span>'
+                         : '<span>未开启使用统计</span>')
+      + (d.usageTracking ? '<button class="btn btn--ghost btn--sm" onclick="toggleExp(\'' + d.id + '\')">' + (exp ? '收起 ▴' : '使用详情 ▾') + '</button>' : '')
+      + '</div>'
+      + (exp ? panel : '')
+      + '</div></article>';
+  }).join('');
+  app.innerHTML += '<div class="area-head"><h2>🐱 似了喵？</h2><span class="sub">猫猫日记流 · 一屏读完 · 无二级页</span></div>' + banners;
+}
+
+/* ================= 变体 C：主设备指挥台（表格优先，密度最高） ================= */
+function renderC(app){
+  var p = dev(S.primary) || S.devices[0];
+  var others = S.devices.filter(function(d){ return d.id !== p.id; });
+  var rank;
+  if (!p.usageTracking) rank = '<div class="panel muted" style="font-weight:700">该设备未开启使用统计（usageTracking: false），仅心跳。</div>';
+  else if (!S.key) rank = '<div class="panel">' + lockPanel('今日应用排行') + '</div>';
+  else {
+    var app = BY_APP[p.id] || {};
+    var rows = Object.keys(app).map(function(k){ return [k, app[k]]; }).sort(function(a,b){ return b[1]-a[1]; });
+    var max = rows.length ? rows[0][1] : 1;
+    rank = '<div class="panel"><h3 class="panel-title">🏆 今日应用排行（' + esc(p.name) + '）</h3><table class="rank-table">'
+      + rows.map(function(r, i){
+        return '<tr><td class="rk">' + (i+1) + '</td><td>' + esc(appLabel(r[0])) + '</td>'
+          + '<td><div class="bar-track"><div class="bar-fill" style="width:' + Math.max(3, r[1]/max*100) + '%;background:' + PALETTE[i % PALETTE.length] + '"></div></div></td>'
+          + '<td class="du">' + fmtDur(r[1]) + '</td></tr>';
+      }).join('') + '</table>' + collapseNote() + '</div>';
+  }
+  var tiles = others.map(function(d){
+    return '<div class="side-tile" onclick="setPrimary(\'' + d.id + '\')" title="点击聚焦该设备">'
+      + '<div class="tile-cat">' + catSVG(d.state) + '</div>'
+      + '<div><div class="tile-name">' + esc(d.name) + '</div>'
+      + '<div class="tile-meta">' + STATE_TXT[d.state] + ' · <span data-rel="' + d.id + '">' + fmtRel(d.lastSeen) + '</span>'
+      + (d.usageTracking ? ' · 今日 ' + fmtDur(d.today) : '') + '</div></div></div>';
+  }).join('');
+  app.innerHTML += '<div class="area-head"><h2>🐱 似了喵？</h2><span class="sub">指挥台视图 · 主设备全量 + 其余设备磁贴</span></div>'
+    + '<div class="dash">'
+    + '<div class="hero"><div class="hero-top"><div class="hero-cat">' + catSVG(p.state) + '</div>'
+    + '<div><div class="hero-status"><span data-tw="' + STATE_TXT[p.state] + '" data-twkey="C:' + p.id + '"></span></div>'
+    + '<div class="hero-name">' + esc(p.name) + ' <span class="chip">' + esc(p.os) + '</span></div>'
+    + '<div class="muted" style="font-size:12.5px;font-weight:700;margin-top:6px">最后心跳 <b data-rel="' + p.id + '">' + fmtRel(p.lastSeen) + '</b></div>'
+    + '<div style="margin-top:12px;max-width:420px">' + windowLine(p) + '</div></div></div>'
+    + '<div class="hero-stats"><div class="stat-box"><div class="lbl">今日活跃总时长（公开）</div>'
+    + '<div class="val">' + (p.usageTracking ? '<span data-total="' + p.id + '">' + fmtDur(p.today) + '</span>' : '—') + '</div></div>'
+    + '<div class="stat-box" style="flex:2"><div class="lbl">今日 24 小时分布' + (S.key || !p.usageTracking ? '' : '（🔒 需密钥）') + '</div>'
+    + (p.usageTracking
+        ? (S.key ? hourlyChart(p, true) : '<div class="lock-panel" style="padding:12px 0 4px"><button class="btn btn--ghost btn--sm" onclick="openModal()">🔒 解锁后显示逐小时分布</button></div>')
+        : '<div class="muted" style="font-size:12px;font-weight:700;padding-top:14px">未开启统计</div>')
+    + '</div></div></div>'
+    + '<div><div style="font-size:12.5px;font-weight:800;color:var(--ink-soft);margin:2px 0 10px">其他设备（点击聚焦）</div>' + tiles + '</div>'
+    + '</div>'
+    + '<div style="margin-top:18px">' + rank + '</div>';
+}
+
+/* ================= Mantine 风格监控表（变体 C 用紧凑表格版） ================= */
+function monitorTable(){
+  return '<section class="mz">'
+    + '<div class="mz-banner">✓ 所有监控运行正常（UptimeFlare 现有区块）</div>'
+    + '<div class="mz-note">— 变体 C：原监控列表改为紧凑表格以匹配指挥台密度 —</div>'
+    + '<div class="panel" style="padding:6px 14px"><table class="mtable">'
+    + S.monitors.map(function(m){
+        return '<tr><td><span class="dot"></span>' + m.name + '</td><td class="muted" style="font-size:12px">' + m.url + '</td>'
+          + '<td style="text-align:right;font-size:12px">200 OK · ' + m.ms + ' ms</td>'
+          + '<td style="text-align:right;font-size:12px">90 天 ' + m.uptime + '</td></tr>';
+      }).join('')
+    + '</table></div></section>';
+}
+
+/* ================= 渲染入口 ================= */
+var VARIANTS = {
+  A: { name: '卡片墙 + 详情页', render: renderA, monitor: monitorZone },
+  B: { name: '猫猫日记流（无二级页）', render: renderB, monitor: monitorZone },
+  C: { name: '主设备指挥台', render: renderC, monitor: monitorTable },
+};
+function render(){
+  var app = document.getElementById('app');
+  var v = VARIANTS[S.variant];
+  app.innerHTML = pageHeader() + overallStatus();
+  v.render(app);
+  app.innerHTML += leafDivider('上面：似了喵设备区（动森风）｜下面：原有服务器 / 网站监控') + v.monitor() + pageFooter();
+  if (S.detailDevice) app.innerHTML += detailOverlay();
+  document.querySelectorAll('[data-tw]').forEach(typewrite);
+  updateMock();
+}
+function setVariant(v){
+  S.variant = v;
+  try { history.replaceState(null, '', '?variant=' + v + location.hash); } catch (e) {}
+  document.getElementById('pbLabel').innerHTML = '<b>' + v + '</b> · ' + VARIANTS[v].name;
+  render();
+}
+function cycle(dir){
+  var keys = Object.keys(VARIANTS);
+  var i = keys.indexOf(S.variant);
+  setVariant(keys[(i + dir + keys.length) % keys.length]);
+}
+function goDetail(id){
+  S.detailDevice = id; S.detailTab = 'today';
+  try { location.hash = 'device:' + id; } catch (e) {}
+  render();
+}
+function goBack(){
+  S.detailDevice = null;
+  try { history.pushState(null, '', location.pathname + location.search); } catch (e) { location.hash = ''; }
+  render();
+}
+function setTab(t){ S.detailTab = t; render(); }
+function toggleExp(id){ S.expanded[id] = !S.expanded[id]; render(); }
+function setPrimary(id){ S.primary = id; render(); }
+
+/* ================= 解锁弹窗（F7：X-API-Key + localStorage 缓存 uf_usage_key） ================= */
+function openModal(){
+  S.modalOpen = true;
+  var root = document.getElementById('modal-root');
+  root.innerHTML = '<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal" id="modalBox">'
+    + '<div class="modal-tw"><span data-tw="喵？想看本喵的详细数据？请出示密钥喵…" data-twkey="modal"></span></div>'
+    + '<input type="password" id="keyInput" placeholder="USAGE_API_KEY" autocomplete="off">'
+    + '<div class="modal-err" id="modalErr" hidden></div>'
+    + '<div class="modal-hint">原型演示密钥：<code>' + DEMO_KEY + '</code><br>真实实现中为 Pages 运行时 secret（≥32 位随机串），成功后缓存进 localStorage（<code>uf_usage_key</code>），下次访问自动解锁。</div>'
+    + '<div class="modal-btns"><button class="btn btn--ghost btn--sm" onclick="closeModal()">先不了</button>'
+    + '<button class="btn btn--sm" onclick="tryUnlock()">解锁</button></div></div></div>';
+  document.querySelectorAll('[data-tw]').forEach(typewrite);
+  var input = document.getElementById('keyInput');
+  input.focus();
+  input.addEventListener('keydown', function(e){ if (e.key === 'Enter') tryUnlock(); });
+}
+function closeModal(){ S.modalOpen = false; document.getElementById('modal-root').innerHTML = ''; }
+function tryUnlock(){
+  var v = document.getElementById('keyInput').value;
+  var err = document.getElementById('modalErr');
+  if (v === DEMO_KEY) {
+    localStorage.setItem(LS_KEY, v);
+    S.key = v; S.modalOpen = false;
+    document.getElementById('modal-root').innerHTML = '';
+    render();
+    toast('已解锁喵！窗口标题与统计数据已显示');
+  } else {
+    err.hidden = false;
+    err.textContent = '密钥不对喵…（401，不会落盘）';
+    var box = document.getElementById('modalBox');
+    box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake');
+  }
+}
+function lockKey(){
+  localStorage.removeItem(LS_KEY);
+  S.key = null;
+  render();
+  toast('已锁定，回到访客视角喵');
+}
+var toastTimer = null;
+function toast(msg){
+  var el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ el.classList.remove('show'); }, 2600);
+}
+
+/* ================= 原型控制台 ================= */
+function buildMockPanel(){
+  var rows = S.devices.map(function(d, i){
+    var seg = ['online','idle','offline'].map(function(st){
+      return '<button class="st-' + st + '" data-di="' + i + '" data-st="' + st + '" onclick="setDevState(' + i + ',\'' + st + '\')">'
+        + ({online:'在线',idle:'挂机',offline:'离线'})[st] + '</button>';
+    }).join('');
+    return '<div class="mock-row"><span>' + esc(d.name.replace('Riceawa 的 ', '')) + '</span><div class="seg">' + seg + '</div></div>';
+  }).join('');
+  document.getElementById('mockBody').innerHTML = rows
+    + '<div class="mock-row"><span>密钥：<b id="mockKeyState"></b></span><button class="btn btn--ghost btn--sm" style="border-width:2px;padding:2px 10px;box-shadow:0 2px 0 var(--ink)" onclick="lockKey()">清除缓存</button></div>';
+}
+function updateMock(){
+  S.devices.forEach(function(d, i){
+    document.querySelectorAll('#mockBody .seg button[data-di="' + i + '"]').forEach(function(b){
+      b.classList.toggle('on', b.dataset.st === d.state);
+    });
+  });
+  var ks = document.getElementById('mockKeyState');
+  if (ks) ks.textContent = S.key ? '已解锁' : '未解锁（访客视角）';
+}
+function setDevState(i, st){
+  var d = S.devices[i];
+  d.state = st;
+  d.lastSeen = st === 'offline' ? S.now - 165 : S.now - 6;
+  render();
+  toast(d.name + ' → ' + STATE_TXT[st]);
+}
+function toggleMock(){
+  var body = document.getElementById('mockBody');
+  var open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : '';
+  document.getElementById('mockChev').textContent = open ? '▸' : '▾';
+}
+
+/* ================= 心跳模拟（1s tick：在线设备心跳推进 / 离线时间流逝 / 今日时长累加） ================= */
+setInterval(function(){
+  S.now++;
+  S.devices.forEach(function(d){
+    if (d.state !== 'offline') {
+      d.lastSeen = S.now - (3 + Math.floor(Math.random() * 18));
+      if (d.state === 'online' && d.usageTracking && d.today != null) d.today++;
+    }
+  });
+  document.querySelectorAll('[data-rel]').forEach(function(el){
+    var d = dev(el.dataset.rel); if (d) el.textContent = fmtRel(d.lastSeen);
+  });
+  document.querySelectorAll('[data-total]').forEach(function(el){
+    var d = dev(el.dataset.total); if (d && d.usageTracking) el.textContent = fmtDur(d.today);
+  });
+  document.querySelectorAll('[data-clock]').forEach(function(el){ el.textContent = fmtClock(S.now); });
+}, 1000);
+
+/* ================= 键盘 / 路由 / 启动 ================= */
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape') { if (S.modalOpen) closeModal(); else if (S.detailDevice) goBack(); return; }
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  var t = e.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+  cycle(e.key === 'ArrowRight' ? 1 : -1);
+});
+window.addEventListener('hashchange', function(){
+  var m = location.hash.match(/^#device:(.+)$/);
+  var id = m ? m[1] : null;
+  if (id !== S.detailDevice) { S.detailDevice = id; render(); }
+});
+document.getElementById('pbPrev').addEventListener('click', function(){ cycle(-1); });
+document.getElementById('pbNext').addEventListener('click', function(){ cycle(1); });
+
+buildMockPanel();
+var vParam = 'A', demo = null;
+try {
+  var usp = new URLSearchParams(location.search);
+  vParam = usp.get('variant') || 'A';
+  demo = usp.get('demo'); // 原型辅助：demo=unlock 直接解锁视角；demo=modal 打开解锁弹窗
+} catch (e) {}
+if (!VARIANTS[vParam]) vParam = 'A';
+if (demo === 'unlock') S.key = DEMO_KEY;
+var mHash = location.hash.match(/^#device:(.+)$/);
+if (mHash) S.detailDevice = mHash[1];
+setVariant(vParam);
+if (demo === 'modal') openModal();
+</script>
+</body>
+</html>
