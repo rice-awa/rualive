@@ -10,7 +10,7 @@ const pageConfig: PageConfig = {
   title: "Riceawa 的状态页",
   // Links shown at the header of your status page, could set `highlight` to `true`
   links: [
-    { link: 'https://github.com/riceawa', label: 'GitHub' },
+    { link: 'https://github.com/rice-awa', label: 'GitHub' },
     { link: 'https://blog.rice-awa.top/', label: '博客' },
   ],
 }
