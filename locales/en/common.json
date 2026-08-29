@@ -91,7 +91,7 @@
   "device.hideKey": "Hide key",
   "device.unlockCancel": "Not now",
   "device.unlockSubmit": "Unlock",
-  "device.unlockError": "Wrong key meow… (401, nothing saved)",
+  "device.unlockError": "Invalid key meow… (validation failed, nothing saved)",
   "device.unlockHint": "The key is a Pages runtime secret (≥32 random chars) set at deploy time. Once validated it is cached in localStorage (uf_usage_key) so the next visit unlocks automatically.",
   "device.unlockedToast": "Unlocked meow! Window title and stats are now visible",
   "device.lockedToast": "Locked — back to visitor view",

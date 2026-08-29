@@ -103,6 +103,42 @@ jobs:
           TF_VAR_AGENT_TOKEN: ${{ secrets.AGENT_TOKEN }}
           TF_VAR_USAGE_API_KEY: ${{ secrets.USAGE_API_KEY }}
 
+      # terraform 无远端 state 每次 import：secret_text 的 env var 在 import 时
+      # 会丢失 type/value 信息（provider 读不回 secret），apply 只发 type 变更
+      # 会被 Cloudflare 清空值（曾导致两个 key 全部失效 401）。
+      # 这里用 API 直写兜底：GET → merge → PATCH 强制写回，随后 wrangler 上传的
+      # 新 deployment 即携带正确 env_vars。
+      - name: Ensure Pages secrets
+        run: |
+          python3 - <<'EOF'
+          import json, os, urllib.request
+
+          acct = os.environ['CLOUDFLARE_ACCOUNT_ID']
+          tok = os.environ['CLOUDFLARE_API_TOKEN']
+
+          def api(method, url, body=None):
+              req = urllib.request.Request(
+                  url, method=method,
+                  data=json.dumps(body).encode() if body else None,
+                  headers={'Authorization': 'Bearer ' + tok, 'Content-Type': 'application/json'})
+              with urllib.request.urlopen(req) as r:
+                  return json.load(r)
+
+          base = f'https://api.cloudflare.com/client/v4/accounts/{acct}/pages/projects/uptimeflare'
+          proj = api('GET', base)['result']
+          env = proj['deployment_configs']['production'].get('env_vars', {})
+          env['AGENT_TOKEN'] = {'type': 'secret_text', 'value': os.environ['AGENT_TOKEN']}
+          env['USAGE_API_KEY'] = {'type': 'secret_text', 'value': os.environ['USAGE_API_KEY']}
+          r = api('PATCH', base, {'deployment_configs': {'production': {'env_vars': env}}})
+          assert r.get('success'), 'PATCH env_vars failed: ' + json.dumps(r.get('errors'))
+          print('env_vars ensured:', sorted(env.keys()))
+          EOF
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ steps.fetch_account_id.outputs.account_id }}
+          AGENT_TOKEN: ${{ secrets.AGENT_TOKEN }}
+          USAGE_API_KEY: ${{ secrets.USAGE_API_KEY }}
+
       # Currently Terraform Cloudflare provider doesn't support direct upload, use wrangler to upload instead.
       - name: Upload pages
         run: |

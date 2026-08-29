@@ -41,6 +41,11 @@ export default async function handler(req: NextRequest): Promise<Response> {
 
   const params = req.nextUrl.searchParams
   const deviceId = params.get('device_id') ?? ''
+  // 无 device_id 的请求是解锁弹窗的密钥验证（只关心 key 是否有效），返回 200 空数据；
+  // 否则 DeviceUnlockModal 会收到 404 并把任何非 200 显示成「密钥错误」。
+  if (!deviceId) {
+    return new Response(JSON.stringify({ daily: [], hourly_today: [] }), { status: 200, headers })
+  }
   const deviceConfig = (workerConfig.devices ?? []).find((d) => d.id === deviceId)
   if (!deviceConfig) {
     return new Response('Unknown device', { status: 404, headers })

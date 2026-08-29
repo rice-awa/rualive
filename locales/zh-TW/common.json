@@ -91,7 +91,7 @@
   "device.hideKey": "隱藏密鑰",
   "device.unlockCancel": "先不了",
   "device.unlockSubmit": "解鎖",
-  "device.unlockError": "密鑰不對喵…（401，不會落盤）",
+  "device.unlockError": "密鑰無效喵…（驗證失敗，不會落盤）",
   "device.unlockHint": "密鑰為部署時設定的 Pages 執行時期 secret（≥32 位隨機字串），輸入正確後快取進 localStorage（uf_usage_key），下次存取自動解鎖。",
   "device.unlockedToast": "已解鎖喵！視窗標題與統計資料已顯示",
   "device.lockedToast": "已鎖定，回到訪客視角喵",
