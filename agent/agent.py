@@ -478,6 +478,7 @@ class IdleSampler:
         self.mode = mode
         self.idle_threshold = idle_threshold
         self._anomaly_streak = 0
+        self._clamped_streak = 0
         self._zero_streak = 0
         self._warned_stuck_zero = False
 

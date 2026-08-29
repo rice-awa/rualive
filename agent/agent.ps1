@@ -320,8 +320,10 @@ function Read-AgentConfig {
         Show-ConfigHelp $Path
         exit 1
     }
+    # 占位符检测是启发式的，可能误判真 token，所以**不要把 token 值打进日志** ——
+    # 排查时用户经常把日志整段贴到 issue / 聊天里，密钥会跟着泄漏。只报长度。
     if ($token -match '^<' -or $token -match '你的') {
-        Write-Log "token 看起来仍是示例占位符，请填入真实的 AGENT_TOKEN（当前值：$token）" 'ERROR'
+        Write-Log "token 看起来仍是示例占位符（长度 $($token.Length)），请填入真实的 AGENT_TOKEN。" 'ERROR'
         exit 1
     }
 
