@@ -1,0 +1,19 @@
+/* 「似了喵？」动森色板 —— 全局 CSS 变量（CSS Modules 无法声明 :root 变量，故放全局文件，在 _app.tsx 引入） */
+:root {
+  --paper: #f7efdd;
+  --paper-2: #fbf5e6;
+  --ink: #4a3b2c;
+  --ink-soft: #8a7a64;
+  --ink-faint: #b3a48c;
+  --lime: #afd46a;
+  --lime-d: #8fb94e;
+  --leaf: #7fb069;
+  --yellow: #f5d98b;
+  --yellow-d: #d9b95f;
+  --orange: #f0a852;
+  --blue: #9cd3e8;
+  --pink: #f2a9a2;
+  --red: #e07b6a;
+  --parch: #e9e0cc;
+  --parch-d: #cfc2a6;
+}

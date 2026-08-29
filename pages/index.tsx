@@ -9,6 +9,9 @@ import MonitorList from '@/components/MonitorList'
 import { Center, Text } from '@mantine/core'
 import MonitorDetail from '@/components/MonitorDetail'
 import Footer from '@/components/Footer'
+import DeviceSection from '@/components/DeviceSection'
+import { DeviceProvider } from '@/util/useDeviceStatus'
+import { buildDeviceViews, DevicePublicView } from '@/worker/src/deviceStore'
 import { useTranslation } from 'react-i18next'
 import { CompactedMonitorStateWrapper, getFromStore } from '@/worker/src/store'
 
@@ -18,9 +21,11 @@ const inter = Inter({ subsets: ['latin'] })
 export default function Home({
   compactedStateStr,
   monitors,
+  devices,
 }: {
   compactedStateStr: string
   monitors: MonitorTarget[]
+  devices: DevicePublicView[]
   tooltip?: string
   statusPageLink?: string
 }) {
@@ -28,8 +33,9 @@ export default function Home({
   let state = new CompactedMonitorStateWrapper(compactedStateStr).uncompact()
 
   // Specify monitorId in URL hash to view a specific monitor (can be used in iframe)
+  // `#device:<id>` 属于设备区（DeviceSection 内部处理），不进入监控直达逻辑
   const monitorId = window.location.hash.substring(1)
-  if (monitorId) {
+  if (monitorId && !monitorId.startsWith('device:')) {
     const monitor = monitors.find((monitor) => monitor.id === monitorId)
     if (!monitor || !state) {
       return <Text fw={700}>{t('Monitor not found', { id: monitorId })}</Text>
@@ -50,6 +56,11 @@ export default function Home({
 
       <main className={inter.className}>
         <Header />
+
+        {/* 「似了喵？」设备区：与监控区平级，worker 状态与设备状态互不依赖；无设备配置时不渲染 */}
+        <DeviceProvider initial={devices}>
+          <DeviceSection />
+        </DeviceProvider>
 
         {state.lastUpdate === 0 ? (
           <Center>
@@ -86,5 +97,16 @@ export async function getServerSideProps() {
     }
   })
 
-  return { props: { compactedStateStr, monitors } }
+  // 设备区 SSR：只传公开字段（hasValidKey=false），窗口等密钥字段不在首屏 HTML 里
+  const now = Math.round(Date.now() / 1000)
+  const timeZone = workerConfig.notification?.timeZone ?? 'Asia/Shanghai'
+  const devices = await buildDeviceViews(
+    process.env as any,
+    workerConfig.devices ?? [],
+    now,
+    timeZone,
+    false
+  )
+
+  return { props: { compactedStateStr, monitors, devices } }
 }

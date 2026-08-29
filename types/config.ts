@@ -47,10 +47,29 @@ export type MonitorTarget = {
   checkProxyFallback?: boolean
 }
 
+/** 「似了喵？」设备监控配置（PRD §11）。密钥类配置严禁写在此文件，只能走 Pages 运行时 secret。 */
+export type DeviceConfig = {
+  id: string
+  name: string
+  /** 展示用系统标识（如 "Windows 11" / "KDE Plasma 6 · Wayland"）；缺省时用 Agent 上报的 os */
+  os?: string
+  /** 超过此时长（秒）无心跳判定离线，默认 3 × intervalSeconds = 90 */
+  offlineAfterSeconds?: number
+  /** 屏幕使用时长统计开关，默认 false（服务器等 headless 设备保持关闭） */
+  usageTracking?: boolean
+  /** 当前窗口标题是否免密钥公开展示，默认 false（需 USAGE_API_KEY 解锁） */
+  publicWindow?: boolean
+  /** 输入空闲多少秒判定「挂机」，默认 120 */
+  idleThreshold?: number
+  /** Agent 上报间隔（秒），同时是统计会计时长单位（每次活跃心跳计入的秒数），默认 30 */
+  intervalSeconds?: number
+}
+
 export type WorkerConfig<TEnv = Env> = {
   kvWriteCooldownMinutes?: number
   passwordProtection?: string
   monitors: MonitorTarget[]
+  devices?: DeviceConfig[]
   notification?: Notification
   callbacks?: Callbacks<TEnv>
 }

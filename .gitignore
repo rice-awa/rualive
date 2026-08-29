@@ -26,6 +26,8 @@ yarn-error.log*
 
 # local env files
 .env*.local
+# wrangler pages dev 本地密钥（AGENT_TOKEN / USAGE_API_KEY 测试值，切勿提交）
+.dev.vars
 
 # vercel
 .vercel
@@ -38,3 +40,8 @@ next-env.d.ts
 terraform.tfstate*
 
 /.wrangler
+
+# agent 本地配置（含 AGENT_TOKEN 密钥，切勿提交）
+/agent/agent.json
+__pycache__/
+*.py[cod]

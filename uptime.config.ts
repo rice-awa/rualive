@@ -74,6 +74,31 @@ const workerConfig: WorkerConfig = {
       timeout: 10000,
     }
   ],
+  // 「似了喵？」设备监控（PRD §11）
+  // device_id 必须与各设备上 agent.json 中的 device_id 一致
+  // 密钥类配置（AGENT_TOKEN / USAGE_API_KEY）严禁写在此文件 —— 会编译进公开的前端 bundle，
+  // 只能作为 Pages 运行时 secret 注入（见 deploy.tf 的 env_vars）
+  devices: [
+    {
+      id: 'riceawa-desktop',
+      name: 'Riceawa 的台式机',
+      os: 'windows',
+      // 超过 90s（3 × interval）无心跳判定离线
+      offlineAfterSeconds: 90,
+      // 开启屏幕使用时长统计（不写密钥；统计按 app 聚合）
+      usageTracking: true,
+      // 当前窗口标题默认需 USAGE_API_KEY 解锁
+      publicWindow: false,
+    },
+    {
+      id: 'riceawa-laptop',
+      name: 'Riceawa 的笔记本',
+      os: 'linux',
+      offlineAfterSeconds: 90,
+      usageTracking: true,
+      publicWindow: true,
+    },
+  ],
   notification: {
     // [Optional] Notification webhook settings, if not specified, no notification will be sent
     // More info at Wiki: https://github.com/lyc8503/UptimeFlare/wiki/Setup-notification

@@ -8,7 +8,7 @@
 
 1. **PRD 的所有架构性假设均已核实，无阻塞项**，可直接进入实现。
 2. 分三阶段交付，与 PRD §9 里程碑对齐：**M1 存活链路 + 共存 + 解锁** → **M2 使用统计** → **M3 通知收尾**。
-3. 前端视觉以 `prototype.html` 的**「主页」变体**（指挥台 + 卡片墙 + 详情页）为准；「猫猫日记流」变体不在本期范围（见 §9 待确认）。
+3. 前端布局**严格对齐 `prototype.html`**，两个变体都做：**「主页」变体**（指挥台 + 卡片墙 + 详情页）与**「猫猫日记流」变体**（横幅流 + 内联统计，无二级页），右上角视图切换。**不引入新设计、不大改**，仅对动画做打磨优化（实现动画时按 `animate` / `animation-vocabulary` / `find-animation-opportunities` / `improve-animations` 动画指导 skill 执行）。
 4. **密钥注入方案已确认**：Terraform provider v5 的 `cloudflare_pages_project.deployment_configs.production.env_vars` 支持 `type = "secret_text"`，`AGENT_TOKEN` / `USAGE_API_KEY` 可随 `terraform apply` 部署，无需手动 `wrangler pages secret put`（关闭 PRD 风险 #6）。
 5. 新增 D1 表追加进 `init.sql` 即可，现有 `deploy/init_d1.py` 幂等执行，**新表随下一次 CI 部署自动创建**。
 6. Worker 与 Pages 已共享代码（`pages/index.tsx` 直接 import `@/worker/src/store`），设备 DB 层放 `worker/src/` 下天然被两端复用，零重复实现。
@@ -57,14 +57,16 @@
                                                             │ 下线/上线通知 + 事件清理     │
 ```
 
-前端结构（`pages/index.tsx`，不替换现有区块）：
+前端结构（`pages/index.tsx`，不替换现有区块；设备区整体复刻 prototype，含「主页 / 猫猫日记」视图切换）：
 
 ```
 Header（现有）
 OverallStatus（现有，不动）
 「似了喵？」设备区（新增，workerConfig.devices 非空时渲染）
-  ├─ 指挥台 hero（主设备）+ 全部设备卡片墙（prototype 主页变体）
-  └─ 设备详情 overlay（#device:<id>，含统计图表，M2 起）
+  ├─ 视图切换按钮（右上角，主页 ⇄ 猫猫日记，复刻 prototype 的 view-toggle）
+  ├─ 主页变体 = 指挥台 hero（主设备）+ 全部设备卡片墙
+  │               └─ 设备详情 overlay（#device:<id>，统计图表 M2 起）
+  └─ 日记流变体 = 每设备一张横幅（对话气泡 + 内联展开统计，无二级页），与主页共用数据层
 MonitorList（现有，不动）
 Footer（现有）
 ```
@@ -86,7 +88,9 @@ Footer（现有）
 | T5 | **设备状态 API** | `GET /api/device/status`：公开字段（在线/挂机/离线、最后活跃、今日总时长、设备名）+ `X-API-Key`/`publicWindow` 分级窗口字段；CORS 头加 `X-API-Key` | `pages/api/device/status.ts`(新) | T2, T3 | 0.7d |
 | T6 | **密钥工具 + 解锁弹窗** | `util/usageKey.ts`（localStorage 键 `uf_usage_key`）；`DeviceUnlockModal`（animal-island-ui `Modal`+`Input`）；锁定按钮；401 自动清缓存 | `util/usageKey.ts`(新)、`components/DeviceUnlockModal.tsx`(新) | T1, T5 | 0.7d |
 | T7 | **猫猫图标** | 三态（活跃/挂机/离线）动森风 SVG，直接用 prototype 的 `catSVG()` 移植为 React 组件（内置 10 图标无猫，需自制） | `components/DeviceCat.tsx`(新) | — | 0.5d |
-| T8 | **设备区 UI** | `DeviceSection`（指挥台 hero + 卡片墙）+ `DeviceCard`，30s 轮询 hook（`useDeviceStatus`）；集成进 `index.tsx`（在 OverallStatus 与 MonitorList 之间） | `components/DeviceSection.tsx`、`DeviceHero.tsx`、`DeviceCard.tsx`、`util/useDeviceStatus.ts`(均新)、`pages/index.tsx` | T1, T5, T6, T7 | 1.5d |
+| T8 | **设备区 UI · 主页变体** | 复刻 prototype 主页：`DeviceSection`（指挥台 hero + 卡片墙）+ `DeviceCard` + 详情 overlay 骨架，30s 轮询 hook（`useDeviceStatus`）；集成进 `index.tsx`（OverallStatus 与 MonitorList 之间） | `components/DeviceSection.tsx`、`DeviceHero.tsx`、`DeviceCard.tsx`、`util/useDeviceStatus.ts`(均新)、`pages/index.tsx` | T1, T5, T6, T7 | 1.2d |
+| T8B | **设备区 UI · 猫猫日记流变体** | 复刻 prototype 日记流：`DeviceFeed`（横幅 + 对话气泡 + 内联展开统计 + 展开/收起）+ 右上角「主页/猫猫日记」视图切换；布局与交互严格对齐原型，不新增设计 | `components/DeviceFeed.tsx`、`components/DeviceBanner.tsx`(新)、`pages/index.tsx` | T8 | 1d |
+| T8C | **动画打磨** | 仅优化动画，不动布局：打字机状态文案（状态翻转重挂载重打）、猫猫三态动画（tail 摇摆 / zz 浮动 / 离线光环与翅膀 / 在线 bounce）、轮询更新的状态过渡；实现时先跑 `animate` / `animation-vocabulary` / `find-animation-opportunities` / `improve-animations` skill，并尊重 `prefers-reduced-motion` | `components/DeviceCat.tsx`、`components/Device*` | T8, T8B | 0.5d |
 | T9 | **hash 路由扩展** | `index.tsx` 先判 `#device:<id>` 走设备详情，否则走现有 monitorId 逻辑；设备详情先出骨架（无统计时显示"未开启统计"态） | `pages/index.tsx`、`components/DeviceDetail.tsx`(新) | T8 | 0.5d |
 | T10 | **样式冲突实测** | 动森全局样式 vs Mantine 共存检查（底色/圆角/字体）；冲突则收窄样式引入范围或对齐主题变量 | `pages/_app.tsx`、`styles/*` | T1, T8 | 0.5d |
 | T11 | **Windows Agent** | PowerShell 5.1+ 单文件零依赖：P/Invoke `GetForegroundWindow`/`GetWindowTextW`/`GetWindowThreadProcessId`、`GetLastInputInfo`、常驻循环、`schtasks` 登录自启 | `agent/agent.ps1`、`agent/agent.json.example`(新) | T4 | 1d |
@@ -111,7 +115,7 @@ Footer（现有）
 | T20 | **事件过期清理** | cron 顺带 `DELETE FROM device_events WHERE ts < now - 14d` | `worker/src/deviceStore.ts` | T19 | 0.2d |
 | T21 | **收尾（可选）** | `title_filter` 隐私过滤、headless Agent（仅心跳）、i18n en 补齐、Plasma 5 (kdotool v0.2.x) 支持评估 | 多处 | — | 1–2d |
 
-**合计约 13–14 个工作日**（不含 T21 可选部分），其中 M1 ≈ 8.5d，M2 ≈ 3.5d，M3 ≈ 1.5d。
+**合计约 14.5–15.5 个工作日**（不含 T21 可选部分），其中 M1 ≈ 9.5d，M2 ≈ 3.5d，M3 ≈ 1.5d。
 
 ---
 
@@ -120,11 +124,11 @@ Footer（现有）
 ```
                  ┌─ T1 (依赖引入) ─┬───────────────┐
                  │                │               ▼
- T2 (数据层) ─┬─▶│             T7 (猫猫) ───▶ T8 (设备区UI) ─▶ T9 (hash路由) ─▶ T13 (M1验收)
- T3 (配置)  ──┘  │                ▲                  │
-                 │                └── T6 (解锁弹窗) ──┘
-                 ▼                │
- T4 (心跳API) ──▶ T5 (状态API) ────┘     T10 (样式冲突, 与T8并行)
+ T2 (数据层) ─┬─▶│             T7 (猫猫) ───▶ T8 (主页变体) ─▶ T8B (日记流变体) ─┐
+ T3 (配置)  ──┘  │                ▲                    │                      │
+                 │                └── T6 (解锁弹窗) ────┘                      ▼
+                 ▼                │                                    T8C (动画) ─▶ T9 (hash路由) ─▶ T13 (M1验收)
+ T4 (心跳API) ──▶ T5 (状态API) ────┘     T10 (样式冲突, 与T8/T8B并行)
                  │
  T11 (Win Agent) ┘
  T12 (Linux Agent) ┘
@@ -135,9 +139,10 @@ Footer（现有）
  T19 (通知) → T20 (清理) → T21 (收尾可选)
 ```
 
-- **关键路径**：T2/T3 → T4 → T5 → T6 → T8 → T9 → T13。前端和 Agent 两轨在 T5 之后可并行。
+- **关键路径**：T2/T3 → T4 → T5 → T6 → T8 → T8B → T8C → T9 → T13。前端和 Agent 两轨在 T5 之后可并行。
 - **T11/T12（两个 Agent）可完全并行**，且只依赖 T4 的接口契约（文档先行：`docs/PRD.md` §7 已有请求/响应格式，实现时按契约写，不阻塞等联调）。
-- **T10（样式冲突实测）越早越好**：若冲突严重，会反作用于 T8 的组件封装方式（决定用 animal-island-ui 组件还是自制容器），所以把它与 T8 并行，而不是最后收尾。
+- **T10（样式冲突实测）越早越好**：若冲突严重，会反作用于 T8/T8B 的组件封装方式（决定用 animal-island-ui 组件还是自制容器），所以把它与 T8 并行，而不是最后收尾。
+- **T8B/T8C 紧跟在 T8 之后**：日记流变体复用主页同一套数据层与解锁状态，只换渲染形态；动画最后统一打磨（T8C），避免两处重复调。
 
 ---
 
@@ -217,6 +222,7 @@ CREATE TABLE IF NOT EXISTS device_notify_state (
   - `getServerSideProps`（`pages/index.tsx`）读 `workerConfig.devices` + `listDeviceStatus` + `sumToday`，把**公开**字段作为 `devices` props 传入（在线/挂机/离线、last_seen、today_total、usage_tracking、publicWindow）。
   - 客户端 `useDeviceStatus` hook 每 30s `fetch('/api/device/status')`，带本地 `uf_usage_key`（若有）→ 合并详细字段；每 30s 刷新 `last_seen` 相对时间与状态色。
   - 详情统计由 `DeviceDetail` 在已解锁时 `fetch('/api/device/usage?days=7')`；未解锁不发起请求（PRD M2 验收点）。
+- **双变体 + 动画（T8/T8B/T8C）**：主页变体与日记流变体共用同一数据层（`useDeviceStatus` 轮询、解锁状态、usage 数据），仅渲染形态不同；视图切换用 prototype 的 `view-toggle`（URL `?page=` 可选，但本项目以 hash 路由为主，可用组件内 state，参照 prototype 的 `setPage`）。日记流横幅 = 卡片的信息压缩形态（状态文案 + 对话气泡 + 内联 Top3/24h + 7 天 sparkline + 展开面板）。动画（T8C）实现时先调用 `animate` / `animation-vocabulary` / `find-animation-opportunities` / `improve-animations` skill 校准动画设计；范围仅限打字机状态文案、猫猫三态（tail 摇摆 / zz 浮动 / 离线光环与翅膀 / 在线 bounce）、轮询刷新时的状态过渡；所有动画尊重 `prefers-reduced-motion`（prototype 已有对应 CSS）。
 - **组件映射**（animal-island-ui 9 个组件）：`Card`（卡片容器，`color` 按状态切换）、`Typewriter`（状态文案，翻转时重挂载触发重打）、`Modal`+`Input`（解锁弹窗）、`Tabs`/`Collapse`/`Card`（详情统计区）、`Footer`/`Divider`/`Time`/`Cursor`（设备区装饰）。无猫 → `DeviceCat` 自制 SVG（移植 prototype `catSVG()`，含 tail 摇摆/zz 动画/离线光环与翅膀）。
 - **hash 路由**（`pages/index.tsx`）：先 `const m = location.hash.match(/^#device:(.+)$/)`，命中则渲染 `DeviceDetail`；否则走现有 monitorId 逻辑。注意该文件当前是函数组件顶层 `if` 分支返回，需保持两个独立分支。
 - **localStorage**：`uf_usage_key`；请求统一从 `util/usageKey.ts` 取 key 附加 `X-API-Key`；收到 401 → 清缓存回锁定态；提供「锁定」按钮清除。
@@ -301,12 +307,12 @@ CREATE TABLE IF NOT EXISTS device_notify_state (
 
 | 阶段 | 估时 | 说明 |
 |---|---|---|
-| M1 | ≈ 8.5 人日 | T1–T13，含两个 Agent 各 1 日 |
+| M1 | ≈ 9.5 人日 | T1–T13（含日记流变体 T8B 与动画打磨 T8C） |
 | M2 | ≈ 3.5 人日 | T14–T18 |
 | M3 | ≈ 1.5 人日 | T19–T20（T21 可选另计 1–2 人日） |
-| 合计 | ≈ 13.5 人日 | 不含评审/打磨 |
+| 合计 | ≈ 14.5 人日 | 不含评审/打磨 |
 
-若单人串行推进，节奏建议：**先做 T2/T3/T4/T5（后端链路）→ T6/T8/T9（前端 M1）→ 两个 Agent 并行 → M1 联调 → 再进入 M2**。
+若单人串行推进，节奏建议：**先做 T2/T3/T4/T5（后端链路）→ T6/T8/T8B/T8C/T9（前端 M1）→ 两个 Agent 并行 → M1 联调 → 再进入 M2**。
 
 ---
 
@@ -314,7 +320,7 @@ CREATE TABLE IF NOT EXISTS device_notify_state (
 
 | # | 决策 | 现状/建议 | 影响 |
 |---|---|---|---|
-| D1 | 前端布局选「主页」还是「猫猫日记流」变体 | 本计划默认**主页变体**（指挥台 + 卡片墙 + 详情页），与 PRD F3/F4 完全对应；日记流变体是原型探索，不冲突、可后加 | 影响 T8/T9/T16 的实现形态 |
+| D1 | 前端布局选「主页」还是「猫猫日记流」变体 | ✅ **已决策：两个变体都做**，严格对齐 prototype，右上角视图切换（见 §3 T8/T8B）；动画单独打磨（T8C） | 影响 T8/T8B/T8C/T9/T16 |
 | D2 | animal-island-ui 全局样式冲突的处理 | 先按 T1 实测（P0）；冲突则把样式引入收窄到设备区容器，或调 Mantine 主题变量对齐动森色板 | 影响 T10，反作用 T8 |
 | D3 | `idle_threshold` 是否做成设备级配置 | 建议在 `DeviceConfig` 加可选 `idleThreshold`（默认 120），与 `offlineAfterSeconds` 对称 | 影响 T3/T4 |
 | D4 | M3 的 `title_filter` / headless Agent / en i18n | 本期均标可选；headless 设备常规走 HTTP 监控即可 | 影响 T21 范围 |

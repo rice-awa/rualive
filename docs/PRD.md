@@ -171,6 +171,8 @@ Footer（现有）
 5. **自动刷新**：客户端每 30s 轮询 `GET /api/device/status`（SSR 提供首屏公开数据，避免白屏；密钥解锁后的详细字段由客户端轮询补齐）
 6. 复用现有 Header / Footer / i18n；设备区块整体采用动森风格（F8），与下方 Mantine 风格的监控列表以 `Divider`（animal-island-ui）做视觉分界
 
+> **布局补充（2026-08-29 决策）**：前端实现严格对齐 `docs/prototype.html`，**「主页」与「猫猫日记流」两个变体均实现**（右上角视图切换）。主页 = 本 F3 结构；日记流 = 横幅流（对话气泡 + 内联展开统计，无二级页），与主页共用数据层与解锁状态。布局不大改、仅打磨动画（见 `docs/DEV_PLAN.md` T8C）。
+
 ### F4 屏幕使用时长统计——配置项开启（P1）
 
 **开关设计**：`workerConfig.devices[]` 中每个设备增加 `usageTracking?: boolean`（默认 `false`）：
