@@ -648,27 +648,119 @@
   font-size: 12px;
   white-space: nowrap;
 }
-.hchart .hcols {
+.hchart {
+  min-width: 0;
+}
+.hreadout {
+  min-height: 53px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+  padding: 8px 11px;
+  background: rgba(255, 255, 255, 0.52);
+  border: 2px solid rgba(74, 59, 44, 0.16);
+  border-radius: 12px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.hreadoutMain {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.hreadoutRange {
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.hreadoutNow {
+  color: var(--ink);
+  background: var(--yellow);
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.hreadoutStats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex: none;
+  color: var(--ink-soft);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+}
+.hreadoutStats strong {
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.1;
+}
+.hplot {
+  position: relative;
+  height: 118px;
+}
+.hgrid {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+.hgrid i {
+  display: block;
+  border-top: 1.5px dashed rgba(74, 59, 44, 0.14);
+}
+.hcols {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: flex-end;
   gap: 3px;
-  height: 118px;
+  height: 100%;
+  border-bottom: 2px solid rgba(127, 176, 105, 0.65);
 }
-.hchartSm .hcols {
+.hchartSm .hplot {
   height: 58px;
 }
 .hcol {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
   flex: 1;
   background: var(--lime);
   border-radius: 4px 4px 2px 2px;
   min-height: 2px;
+  cursor: crosshair;
+  transition: filter 0.15s ease, background 0.15s ease, transform 0.15s ease;
+  transform-origin: bottom center;
 }
-.hcol:hover {
+.hcolEmpty {
+  background: rgba(127, 176, 105, 0.26);
+}
+.hcol:hover,
+.hcolActive {
+  background: var(--leaf);
   filter: brightness(0.93);
+  transform: scaleY(1.035);
 }
 .hcolNow {
   outline: 2.5px solid var(--ink);
   outline-offset: 1px;
+}
+.hcol:focus-visible {
+  outline: 2.5px solid var(--orange);
+  outline-offset: 3px;
 }
 .hlabels {
   display: flex;
@@ -677,6 +769,37 @@
   color: var(--ink-soft);
   font-weight: 700;
   margin-top: 4px;
+}
+.hchartSm .hreadout {
+  min-height: 42px;
+  margin-bottom: 8px;
+  padding: 6px 8px;
+  gap: 8px;
+}
+.hchartSm .hreadoutRange {
+  font-size: 11px;
+}
+.hchartSm .hreadoutStats {
+  font-size: 9px;
+}
+.hchartSm .hreadoutStats strong {
+  font-size: 13px;
+}
+.hchartSm .hreadoutNow {
+  font-size: 9px;
+  padding: 1px 5px;
+}
+@media (max-width: 420px) {
+  .hreadout {
+    align-items: flex-start;
+  }
+  .hreadoutMain {
+    display: block;
+  }
+  .hreadoutNow {
+    display: inline-block;
+    margin: 3px 0 0;
+  }
 }
 .dchart .dcols {
   display: flex;

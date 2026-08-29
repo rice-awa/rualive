@@ -88,22 +88,75 @@ export function HourlyChart({
   compact?: boolean
 }) {
   const { t } = useTranslation('common')
+  const [hoveredHour, setHoveredHour] = useState<number | null>(null)
+  const [focusedHour, setFocusedHour] = useState<number | null>(null)
   if (!hourly) return null
-  const vals = new Array(24).fill(0)
-  for (const h of hourly) if (h.hour >= 0 && h.hour < 24) vals[h.hour] = h.active_seconds
+  const vals = new Array<number>(24).fill(0)
+  for (const h of hourly) {
+    const value = Number(h.active_seconds)
+    if (Number.isInteger(h.hour) && h.hour >= 0 && h.hour < 24 && Number.isFinite(value)) {
+      vals[h.hour] = Math.max(0, value)
+    }
+  }
   const max = Math.max(...vals, 1)
   const cur = new Date(now * 1000).getHours()
-  const cols = vals.map((v, h) => (
-    <div
-      key={h}
-      className={[styles.hcol, h === cur ? styles.hcolNow : ''].join(' ')}
-      style={{ height: `${Math.max(2, (v / max) * 100)}%` }}
-      title={t('device.barTip', { hour: String(h).padStart(2, '0'), dur: fmtDur(v) })}
-    />
-  ))
+  const activeHour = focusedHour ?? hoveredHour ?? cur
+  const activeValue = vals[activeHour]
+  const activePercent = Math.min(100, Math.round((activeValue / 3600) * 100))
+  const activeHourLabel = String(activeHour).padStart(2, '0')
+  const nextHourLabel = String((activeHour + 1) % 24).padStart(2, '0')
+  const activeRange = t('device.hourlyRange', { start: activeHourLabel, end: nextHourLabel })
+
+  const cols = vals.map((v, h) => {
+    const hourLabel = String(h).padStart(2, '0')
+    const nextLabel = String((h + 1) % 24).padStart(2, '0')
+    const range = t('device.hourlyRange', { start: hourLabel, end: nextLabel })
+    const percent = Math.min(100, Math.round((v / 3600) * 100))
+    return (
+      <button
+        key={h}
+        type="button"
+        className={[
+          styles.hcol,
+          v === 0 ? styles.hcolEmpty : '',
+          h === cur ? styles.hcolNow : '',
+          h === activeHour ? styles.hcolActive : '',
+        ].join(' ')}
+        style={{ height: `${Math.max(2, (v / max) * 100)}%` }}
+        title={t('device.barTip', { hour: hourLabel, dur: fmtDur(v) })}
+        aria-label={`${range} · ${fmtDur(v)} · ${percent}%`}
+        aria-current={h === cur ? 'time' : undefined}
+        onMouseEnter={() => setHoveredHour(h)}
+        onMouseLeave={() => setHoveredHour(null)}
+        onFocus={() => setFocusedHour(h)}
+        onBlur={() => setFocusedHour(null)}
+      />
+    )
+  })
   return (
     <div className={[styles.hchart, compact ? styles.hchartSm : ''].join(' ')}>
-      <div className={styles.hcols}>{cols}</div>
+      <div className={styles.hreadout} aria-live="polite">
+        <div className={styles.hreadoutMain}>
+          <span className={styles.hreadoutRange}>{activeRange}</span>
+          {activeHour === cur && <span className={styles.hreadoutNow}>{t('device.hourlyCurrent')}</span>}
+        </div>
+        <div className={styles.hreadoutStats}>
+          <strong>{fmtDur(activeValue)}</strong>
+          <span>
+            {activeValue > 0
+              ? t('device.hourlyShare', { percent: activePercent })
+              : t('device.hourlyNoActivity')}
+          </span>
+        </div>
+      </div>
+      <div className={styles.hplot}>
+        <div className={styles.hgrid} aria-hidden="true">
+          <i />
+          <i />
+          <i />
+        </div>
+        <div className={styles.hcols}>{cols}</div>
+      </div>
       <div className={styles.hlabels}>
         <span>0</span>
         <span>6</span>
