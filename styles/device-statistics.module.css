@@ -335,6 +335,9 @@
 .apps {
   max-height: 340px;
   overflow: auto;
+  scrollbar-gutter: stable;
+  /* 浮动滚动条不占 gutter，仍需留白，避免遮住时长和百分比。 */
+  padding-inline-end: 16px;
 }
 .app {
   margin: 19px 0;
