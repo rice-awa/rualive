@@ -1,4 +1,5 @@
 .root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   margin-top: 28px;
   font-size: 14px;
   line-height: 1.6;
@@ -38,10 +39,21 @@
 }
 .root button {
   font-weight: 700;
-  transition: background 0.15s;
+  transition:
+    background-color 150ms ease,
+    transform 120ms var(--ease-out);
 }
-.root button:hover {
-  background: var(--parch);
+@media (hover: hover) and (pointer: fine) {
+  .root button:hover {
+    background: var(--parch);
+  }
+}
+.root button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.root .columns button:active,
+.root .tableScroll button:active {
+  transform: none;
 }
 .root button:disabled {
   opacity: 0.4;
@@ -248,8 +260,13 @@
   justify-content: center;
   align-items: end;
 }
-.columns button:hover {
-  background: #4a3b2c08;
+@media (hover: hover) and (pointer: fine) {
+  .columns button:hover {
+    background: #4a3b2c08;
+  }
+  .columns button:hover > i {
+    background: #405c35;
+  }
 }
 .columns button > i {
   width: 72%;
@@ -260,7 +277,6 @@
   border: 1px solid #78994c;
   border-radius: 5px 5px 1px 1px;
 }
-.columns button:hover > i,
 .columns button:focus-visible > i {
   background: #405c35;
 }
@@ -416,8 +432,10 @@
 .tableScroll tr {
   cursor: pointer;
 }
-.tableScroll tbody tr:hover {
-  background: #eaf0d9;
+@media (hover: hover) and (pointer: fine) {
+  .tableScroll tbody tr:hover {
+    background: #eaf0d9;
+  }
 }
 .tableScroll td button {
   padding: 0;
@@ -589,8 +607,180 @@
     min-height: 0;
   }
 }
+
+/* 只让状态切换柔和出现，不对正在阅读的数值或柱高做插值。 */
+.dashboard > .metrics,
+.dashboard > .chart,
+.dashboard > .appPanel,
+.dashboard > .tablePanel,
+.dashboard > .hourly {
+  opacity: 1;
+  transition: opacity 200ms var(--ease-out);
+}
+.dashboard > .chart,
+.dashboard > .appPanel {
+  transition-delay: 30ms;
+}
+.dashboard > .tablePanel,
+.dashboard > .hourly {
+  transition-delay: 60ms;
+}
+@starting-style {
+  .dashboard > .metrics,
+  .dashboard > .chart,
+  .dashboard > .appPanel,
+  .dashboard > .tablePanel,
+  .dashboard > .hourly {
+    opacity: 0;
+  }
+}
+.columns button > i {
+  transition: background-color 150ms ease;
+}
+.tableScroll tbody tr {
+  transition: background-color 150ms ease;
+}
+
+/* 保持加载时的版面骨架，避免整个统计区先折叠成一行再撑开。 */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.loading {
+  pointer-events: none;
+}
+.skeletonMetric i,
+.skeletonChart > i,
+.skeletonApps i,
+.skeletonTable i {
+  display: block;
+  background: var(--parch);
+  border-radius: 5px;
+}
+.skeletonMetric {
+  min-height: 140px;
+}
+.skeletonMetric i {
+  height: 11px;
+  width: 60%;
+  margin: 4px 0 14px;
+}
+.skeletonMetric i:nth-child(2) {
+  width: 82%;
+  height: 28px;
+}
+.skeletonMetric i:last-child {
+  margin-bottom: 0;
+  width: 75%;
+}
+.skeletonChart,
+.skeletonApps {
+  padding: 23px;
+  min-height: 392px;
+}
+.skeletonChart > i {
+  height: 16px;
+  width: 36%;
+}
+.skeletonChart > div {
+  margin-top: 30px;
+  height: 230px;
+  border-bottom: 1px solid var(--parch-d);
+  background: repeating-linear-gradient(to top, transparent 0 56px, var(--parch) 56px 57px);
+  opacity: 0.6;
+}
+.skeletonApps i {
+  height: 24px;
+  margin: 15px 0 38px;
+}
+.skeletonApps i:nth-child(even) {
+  width: 75%;
+}
+.skeletonTable {
+  grid-column: 1 / -1;
+  padding: 23px;
+}
+.skeletonTable i {
+  height: 16px;
+  margin: 15px 0 30px;
+}
+.skeletonTable i:last-child {
+  margin-bottom: 0;
+  width: 45%;
+}
+
+/* 原生 top-layer 保留至退出结束：无需计时器，不延迟关闭或焦点归还。
+   不支持离散过渡的浏览器自动退化为即时开合。 */
+.dialog {
+  opacity: 0;
+  transform: translateY(8px) scale(0.97);
+  transition:
+    opacity 200ms var(--ease-out),
+    transform 200ms var(--ease-out),
+    overlay 200ms allow-discrete,
+    display 200ms allow-discrete;
+}
+.dialog[open] {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+.dialog::backdrop {
+  opacity: 0;
+  transition:
+    opacity 200ms var(--ease-out),
+    overlay 200ms allow-discrete,
+    display 200ms allow-discrete;
+}
+.dialog[open]::backdrop {
+  opacity: 1;
+}
+@starting-style {
+  .dialog[open] {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  .dialog[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+/* 键盘路径即时响应；减少动态效果时只保留短淡入淡出。 */
+.root[data-input='keyboard'] *,
+.root[data-input='keyboard'] .dialog::backdrop {
+  transition: none !important;
+}
+.root[data-input='keyboard'] .dialog {
+  transform: none;
+}
 @media (prefers-reduced-motion: reduce) {
   .root button {
-    transition: none;
+    transition: background-color 150ms ease;
+  }
+  .root button:active:not(:disabled),
+  .dialog {
+    transform: none;
+  }
+  .dashboard > .metrics,
+  .dashboard > .chart,
+  .dashboard > .appPanel,
+  .dashboard > .tablePanel,
+  .dashboard > .hourly {
+    transition: opacity 150ms ease;
+  }
+  .dialog,
+  .dialog::backdrop {
+    transition:
+      opacity 150ms ease,
+      overlay 150ms allow-discrete,
+      display 150ms allow-discrete;
+  }
+  @starting-style {
+    .dialog[open] {
+      transform: none;
+    }
   }
 }

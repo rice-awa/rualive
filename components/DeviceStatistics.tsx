@@ -81,7 +81,15 @@ export default function DeviceStatistics({
     setRange({ start: from, end: to })
   }
   return (
-    <section className={s.root}>
+    <section
+      className={s.root}
+      onPointerDownCapture={(event) => {
+        event.currentTarget.dataset.input = 'pointer'
+      }}
+      onKeyDownCapture={(event) => {
+        event.currentTarget.dataset.input = 'keyboard'
+      }}
+    >
       <header className={s.intro}>
         <p>{t('stats.eyebrow')}</p>
         <h1>{t('stats.title')}</h1>
@@ -222,6 +230,7 @@ function StatisticsRange({
   const [sort, setSort] = useState('desc')
   const [page, setPage] = useState(1)
   const [selected, setSelected] = useState<UsageDay | null>(null)
+  const [dialogRequest, setDialogRequest] = useState(0)
   const [hovered, setHovered] = useState<string | null>(null)
   const dialog = useRef<HTMLDialogElement>(null)
   // 父级随设备状态刷新会重建回调，不能因此清空统计并重复请求。
@@ -260,8 +269,14 @@ function StatisticsRange({
     }
   }, [deviceId, start, end, retry])
   useEffect(() => {
-    if (selected) dialog.current?.showModal()
-  }, [selected])
+    if (dialogRequest > 0) dialog.current?.showModal()
+  }, [dialogRequest])
+  const openDay = (day: UsageDay) => {
+    setSelected(day)
+    setDialogRequest((request) => request + 1)
+  }
+  // 保留关闭中的内容，原生 dialog 的离场过渡不会因清空详情而塌缩。
+  // 每次请求在新内容提交后 showModal，支持再次打开同一天，且避免朗读旧标题。
   if (error)
     return (
       <div className={`${s.panel} ${s.empty}`} role="alert">
@@ -273,8 +288,33 @@ function StatisticsRange({
     )
   if (!data)
     return (
-      <div className={`${s.panel} ${s.empty}`} role="status">
-        {t('stats.loading')}
+      <div className={`${s.dashboard} ${s.loading}`} aria-busy="true">
+        <span className={s.srOnly} role="status">
+          {t('stats.loading')}
+        </span>
+        <div className={s.metrics} aria-hidden="true">
+          {[0, 1, 2, 3].map((index) => (
+            <div key={index} className={s.skeletonMetric}>
+              <i />
+              <i />
+              <i />
+            </div>
+          ))}
+        </div>
+        <div className={`${s.panel} ${s.skeletonChart}`} aria-hidden="true">
+          <i />
+          <div />
+        </div>
+        <div className={`${s.panel} ${s.skeletonApps}`} aria-hidden="true">
+          {[0, 1, 2, 3, 4].map((index) => (
+            <i key={index} />
+          ))}
+        </div>
+        <div className={`${s.panel} ${s.skeletonTable}`} aria-hidden="true">
+          {Array.from({ length: Math.min(PAGE_SIZE, rangeDays(start, end)) + 2 }, (_, index) => (
+            <i key={index} />
+          ))}
+        </div>
       </div>
     )
   const rows = usageDays(data, start, end)
@@ -407,7 +447,7 @@ function StatisticsRange({
                   onMouseEnter={() => setHovered(row.date)}
                   onFocus={() => setHovered(row.date)}
                   onBlur={() => setHovered(null)}
-                  onClick={() => setSelected(row)}
+                  onClick={() => openDay(row)}
                 >
                   <i style={{ height: `${((row.total ?? 0) / 3600 / ceiling) * 100}%` }} />
                   <span>
@@ -470,7 +510,7 @@ function StatisticsRange({
             </thead>
             <tbody>
               {sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map((row) => (
-                <tr key={row.date} onClick={() => setSelected(row)}>
+                <tr key={row.date} onClick={() => openDay(row)}>
                   <td>
                     <button type="button" aria-label={`${row.date} · ${t('stats.openDay')}`}>
                       {row.date} <small>{weekday(row.date)}</small>
@@ -541,12 +581,7 @@ function StatisticsRange({
           <HourlyChart hourly={data.hourly_today} now={now} />
         </section>
       )}
-      <dialog
-        ref={dialog}
-        aria-labelledby="usage-day-title"
-        className={s.dialog}
-        onClose={() => setSelected(null)}
-      >
+      <dialog ref={dialog} aria-labelledby="usage-day-title" className={s.dialog}>
         <div className={s.sectionHead}>
           <h2 id="usage-day-title">
             {selected?.date} · {t('stats.dayReview')}
