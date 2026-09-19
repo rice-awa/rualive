@@ -1,0 +1,596 @@
+.root {
+  margin-top: 28px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.root *,
+.root *::before,
+.root *::after {
+  box-sizing: border-box;
+}
+.root h1,
+.root h2,
+.root p {
+  margin: 0;
+}
+.root h2 {
+  font-size: 18px;
+  font-weight: 800;
+}
+.root small {
+  color: var(--ink-soft);
+  font-size: 11px;
+}
+.root button,
+.root input,
+.root select {
+  font: inherit;
+  color: var(--ink);
+  border: 1px solid var(--parch-d);
+  border-radius: 9px;
+  background: var(--paper-2);
+  min-height: 40px;
+  padding: 8px 12px;
+}
+.root button,
+.root select {
+  cursor: pointer;
+}
+.root button {
+  font-weight: 700;
+  transition: background 0.15s;
+}
+.root button:hover {
+  background: var(--parch);
+}
+.root button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.root button:focus-visible,
+.root input:focus-visible,
+.root select:focus-visible,
+.root summary:focus-visible {
+  outline: 3px solid var(--leaf);
+  outline-offset: 3px;
+}
+.intro {
+  margin: 0 0 24px;
+}
+.intro p {
+  color: var(--ink-soft);
+  font-size: 11px;
+  letter-spacing: 2px;
+}
+.intro h1 {
+  font-size: clamp(28px, 3.2vw, 38px);
+  letter-spacing: -1px;
+  line-height: 1.4;
+  margin: 5px 0 8px;
+}
+.intro > span {
+  color: var(--ink-soft);
+}
+.panel {
+  background: var(--paper-2);
+  border: 1px solid #b8ab93;
+  border-radius: 18px;
+  box-shadow: 0 4px 0 #4a3b2c12;
+  min-width: 0;
+}
+.range {
+  padding: 19px 23px;
+  margin-bottom: 23px;
+}
+.rangeTop,
+.sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.rangeTop {
+  margin-bottom: 15px;
+}
+.rangeTop > strong {
+  font-size: 13px;
+}
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.presets button {
+  border-color: transparent;
+  font-size: 12px;
+  min-height: 34px;
+  padding: 5px 12px;
+}
+.presets button[aria-pressed='true'] {
+  color: var(--paper-2);
+  background: #405c35;
+}
+.rangeForm {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.rangeForm label {
+  display: grid;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--ink-soft);
+  min-width: 0;
+}
+.rangeForm input {
+  font-size: 13px;
+  width: 177px;
+  max-width: 100%;
+}
+.rangeForm .days input {
+  width: 80px;
+}
+.rangeForm > small {
+  margin-left: auto;
+  text-align: right;
+}
+.root .primary {
+  background: var(--lime);
+  border-color: #8da75f;
+}
+.error {
+  color: #a33f30;
+  padding-top: 12px;
+  font-size: 12px;
+}
+.dashboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 22px;
+}
+.metrics {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr 1fr;
+  border: 1px solid #b8ab93;
+  border-radius: 17px;
+  overflow: hidden;
+  background: var(--paper-2);
+  box-shadow: 0 4px 0 #4a3b2c12;
+}
+.metrics > div {
+  padding: 20px 22px;
+  border-right: 1px solid var(--parch);
+  min-width: 0;
+}
+.metrics > div:first-child {
+  background: #e7edcf;
+}
+.metrics > div:last-child {
+  border: 0;
+}
+.metrics p {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.metrics strong {
+  display: block;
+  font-size: clamp(20px, 2.1vw, 29px);
+  line-height: 1.5;
+  font-weight: 800;
+  margin: 8px 0;
+  font-variant-numeric: tabular-nums;
+}
+.metrics small {
+  display: block;
+}
+.chart,
+.appPanel {
+  padding: 22px 23px;
+}
+.legend {
+  font-size: 10px;
+  color: var(--ink-soft);
+  max-width: 140px;
+}
+.chartScroll {
+  overflow-x: auto;
+  margin-top: 25px;
+}
+.plot {
+  position: relative;
+  height: 230px;
+  min-width: 460px;
+  padding: 0 0 26px 32px;
+}
+.axis {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 26px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--ink-soft);
+}
+.grid {
+  position: absolute;
+  left: 32px;
+  right: 0;
+  top: 0;
+  bottom: 26px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+.grid i {
+  border-top: 1px dashed var(--parch);
+}
+.columns {
+  display: flex;
+  gap: 5px;
+  height: 100%;
+  position: relative;
+}
+.columns button {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  position: relative;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  display: flex;
+  justify-content: center;
+  align-items: end;
+}
+.columns button:hover {
+  background: #4a3b2c08;
+}
+.columns button > i {
+  width: 72%;
+  max-width: 39px;
+  min-width: 7px;
+  min-height: 3px;
+  background: var(--lime);
+  border: 1px solid #78994c;
+  border-radius: 5px 5px 1px 1px;
+}
+.columns button:hover > i,
+.columns button:focus-visible > i {
+  background: #405c35;
+}
+.columns button > span {
+  position: absolute;
+  bottom: -23px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  font-weight: 400;
+  white-space: nowrap;
+  color: var(--ink-soft);
+}
+.columns .missingBar > i {
+  height: 7px !important;
+  border: 1px dashed #b3a48c;
+  background: repeating-linear-gradient(135deg, transparent 0 3px, #c8bda6 3px 4px);
+}
+.columns .zeroBar > i {
+  height: 3px !important;
+  background: transparent;
+  border: 1px solid #a3957e;
+}
+.average {
+  position: absolute;
+  left: 32px;
+  right: 0;
+  border-top: 1px dashed #928363;
+  pointer-events: none;
+  z-index: 1;
+}
+.average > span {
+  position: absolute;
+  right: 0;
+  top: -16px;
+  font-size: 9px;
+  background: var(--paper-2);
+  padding-left: 4px;
+  color: var(--ink-soft);
+}
+.readout {
+  margin-top: 20px;
+  padding: 12px 14px;
+  background: #f1ead9;
+  border-radius: 10px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+}
+.root .hint {
+  font-size: 11px;
+  color: var(--ink-soft);
+  margin-top: 12px;
+}
+.apps {
+  max-height: 340px;
+  overflow: auto;
+}
+.app {
+  margin: 19px 0;
+}
+.appLine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.appDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.appLine > span:nth-child(2) {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.appLine strong {
+  margin-left: auto;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.appTrack {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 17px;
+  margin-top: 7px;
+}
+.appTrack > div {
+  height: 5px;
+  background: var(--parch);
+  border-radius: 5px;
+  flex: 1;
+  overflow: hidden;
+}
+.appTrack i {
+  height: 100%;
+  display: block;
+  border-radius: 5px;
+}
+.appTrack > span {
+  width: 39px;
+  text-align: right;
+  font-size: 10px;
+  color: var(--ink-soft);
+}
+.tablePanel {
+  grid-column: 1 / -1;
+  overflow: hidden;
+}
+.tablePanel > .sectionHead {
+  padding: 22px 24px 17px;
+}
+.actions {
+  display: flex;
+  gap: 8px;
+}
+.actions button,
+.actions select {
+  font-size: 11px;
+  min-height: 34px;
+  padding: 6px 10px;
+}
+.tableScroll {
+  overflow: auto;
+}
+.tableScroll table {
+  border-collapse: collapse;
+  width: 100%;
+  text-align: left;
+  white-space: nowrap;
+}
+.tableScroll th {
+  background: #f1ead9;
+  padding: 11px 20px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  border-block: 1px solid var(--parch);
+}
+.tableScroll td {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--parch);
+  font-size: 12px;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tableScroll tr {
+  cursor: pointer;
+}
+.tableScroll tbody tr:hover {
+  background: #eaf0d9;
+}
+.tableScroll td button {
+  padding: 0;
+  min-height: 30px;
+  background: transparent;
+  border: 0;
+}
+.tableScroll td small {
+  margin-left: 6px;
+}
+.duration {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.badge,
+.missingBadge,
+.liveBadge {
+  font-size: 10px;
+  padding: 3px 7px;
+  border-radius: 5px;
+  background: #e8edda;
+  color: #405c35;
+}
+.missingBadge {
+  background: #ebe5d8;
+  color: var(--ink-soft);
+}
+.liveBadge {
+  background: #f4e7c7;
+  color: #7c6027;
+}
+.tableFooter {
+  padding: 15px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  color: var(--ink-soft);
+  font-size: 11px;
+}
+.tableFooter > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.tableFooter button {
+  min-height: 32px;
+  padding: 3px 10px;
+}
+.hourly {
+  grid-column: 1 / -1;
+  padding: 22px;
+}
+.notes {
+  margin-top: 24px;
+  border-top: 1px dashed #b8ab93;
+  padding-top: 17px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.notes summary {
+  cursor: pointer;
+  color: var(--ink);
+  font-weight: 700;
+}
+.notes p {
+  margin-top: 10px;
+}
+.empty {
+  padding: 44px 20px;
+  text-align: center;
+  color: var(--ink-soft);
+}
+.empty button {
+  margin-top: 15px;
+}
+.dialog {
+  width: min(460px, calc(100% - 32px));
+  max-height: calc(100dvh - 48px);
+  overflow: auto;
+  background: var(--paper-2);
+  color: var(--ink);
+  padding: 27px;
+  border: 1px solid var(--ink);
+  border-radius: 20px;
+}
+.dialog::backdrop {
+  background: #322b2055;
+  backdrop-filter: blur(3px);
+}
+.root .dialogTotal {
+  font-size: 30px;
+  font-weight: 800;
+  margin: 18px 0;
+}
+@media (max-width: 950px) {
+  .dashboard {
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: 16px;
+  }
+  .metrics > div {
+    padding: 17px;
+  }
+  .rangeForm > small {
+    display: none;
+  }
+  .rangeTop {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .chart .sectionHead {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+@media (max-width: 720px) {
+  .dashboard {
+    display: flex;
+    flex-direction: column;
+  }
+  .metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .metrics > div {
+    border-bottom: 1px solid var(--parch);
+  }
+  .metrics > div:nth-child(2) {
+    border-right: 0;
+  }
+  .metrics > div:nth-child(3) {
+    border-bottom: 0;
+  }
+  .range,
+  .chart,
+  .appPanel {
+    padding: 16px;
+  }
+  .rangeForm {
+    gap: 10px;
+  }
+  .rangeForm label {
+    width: calc(50% - 5px);
+  }
+  .rangeForm input,
+  .rangeForm .days input {
+    width: 100%;
+    min-width: 0;
+  }
+  .rangeForm > button {
+    flex: 1;
+  }
+  .tablePanel > .sectionHead {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 18px 16px;
+  }
+  .tableFooter {
+    padding: 13px;
+    flex-wrap: wrap;
+  }
+  .chart .sectionHead {
+    flex-direction: row;
+  }
+  .root button {
+    min-height: 44px;
+  }
+  .root .columns button {
+    min-height: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .root button {
+    transition: none;
+  }
+}
