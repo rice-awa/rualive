@@ -183,7 +183,7 @@ export type DevicePublicView = {
   last_seen: number | null
   last_title: string | null
   last_app: string | null
-  /** 该设备是否存在图形会话窗口（服务端真相；headless 时 title 为空串） */
+  /** 最近一次心跳是否带有窗口标题；切到桌面或锁屏时也可能为 false */
   has_window: boolean
   usage_tracking: boolean
   public_window: boolean

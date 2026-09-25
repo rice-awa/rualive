@@ -166,6 +166,30 @@ check_qdbus() {
   esac
 }
 
+install_wayland_idle() {
+  local protocol="/usr/share/wayland-protocols/staging/ext-idle-notify/ext-idle-notify-v1.xml"
+  if [ ! -f "$protocol" ] || ! has_cmd wayland-scanner || ! has_cmd cc || \
+      ! pkg-config --exists wayland-client 2>/dev/null; then
+    warn "缺少 Wayland 协议开发工具（wayland-scanner、cc、wayland-client），未安装输入空闲监听器。"
+    warn "Plasma Wayland 上将只能通过锁屏判断挂机；可安装 libwayland-dev、wayland-protocols 和编译器后重新运行脚本。"
+    return 0
+  fi
+
+  local tmp; tmp="$(mktemp -d)"
+  if wayland-scanner client-header "$protocol" "$tmp/ext-idle-notify-v1-client-protocol.h" && \
+      wayland-scanner private-code "$protocol" "$tmp/ext-idle-notify-v1-protocol.c" && \
+      cc -std=c11 -Wall -Wextra -I"$tmp" "$SCRIPT_DIR/wayland-idle.c" \
+        "$tmp/ext-idle-notify-v1-protocol.c" $(pkg-config --cflags --libs wayland-client) \
+        -o "$tmp/wayland-idle"; then
+    mkdir -p "$BIN_DIR"
+    install -m 0755 "$tmp/wayland-idle" "$BIN_DIR/uptimeflare-wayland-idle"
+    info "已安装 Wayland 输入空闲监听器：$BIN_DIR/uptimeflare-wayland-idle"
+  else
+    warn "Wayland 输入空闲监听器编译失败，将仅通过锁屏判断挂机。"
+  fi
+  rm -rf "$tmp"
+}
+
 # ---- kdotool 安装 ----
 
 install_from_tarball() {
@@ -382,6 +406,7 @@ main() {
   check_python
   check_requests
   check_qdbus
+  install_wayland_idle
 
   if [ "$SKIP_KDOTOOL" -eq 0 ]; then
     install_kdotool

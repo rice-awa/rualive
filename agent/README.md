@@ -103,7 +103,7 @@ bash install-linux.sh
 - 检测图形会话 / KDE Plasma 版本 / 架构 / 发行版（apt / pacman / dnf / …）；
 - 安装 `kdotool`：优先用 `~/Downloads` 里已有的 `kdotool-*.tar.gz`，没有则从
   GitHub 下载官方 release（默认锁 v0.2.3，同时支持 Plasma 5 与 6）；
-- 检查 `python3` / `requests` / `qdbus`，缺失时按你的发行版给出安装命令；
+- 检查 `python3` / `requests` / `qdbus`；具备 Wayland 开发工具时编译安装输入空闲监听器；
 - 把 `agent.py` 与配置部署到 `~/.local/share/uptimeflare-agent/`；
 - 已有 `agent.json` 则复用；没有则交互式询问 endpoint / token / device_id，
   也可用 `--endpoint` / `--token` / `--device-id` 参数或同名环境变量跳过交互；
@@ -132,9 +132,13 @@ sudo pacman -S python-requests         # Arch
 sudo dnf install python3-requests      # Fedora
 # 或： pip install requests
 
-# qdbus：读取输入空闲时间（可选，缺失则 idle 恒为 0）
+# qdbus：读取输入空闲时间或锁屏状态（可选）
 sudo apt install qt6-tools-dev-tools   # Debian / Ubuntu，提供 qdbus6
 sudo pacman -S qt6-tools               # Arch
+
+# Plasma Wayland 无法通过 qdbus 读取未锁屏时的输入空闲时间；安装监听器构建依赖
+sudo apt install libwayland-dev wayland-protocols build-essential
+# 安装后重新运行 bash install-linux.sh
 ```
 
 `kdotool` 用来读取前台窗口标题，需要单独安装 —— 见
@@ -251,12 +255,13 @@ D-Bus 接口上方法签名是存在的，但 KWin 在 Wayland 下没有实现�
 | 档 | 条件 | idle 取值 |
 |---|---|---|
 | `GetSessionIdleTime` 可用 | 通常是 X11 会话 | 真实输入空闲秒数 |
-| 返回 `NotSupported` | Plasma 6 Wayland | **退化为锁屏状态**：已锁屏 → `max(锁屏时长, idle_threshold + 1)` 视为离开；未锁屏 → `0`（按在用处理） |
-| 找不到 `qdbus` | 未装 Qt tools | 恒 `0` |
+| Wayland 输入空闲监听器可用 | Plasma 6 Wayland | 监听键鼠输入；超过阈值后上报递增的空闲秒数，恢复输入时重置。锁屏立即视为挂机 |
+| 返回 `NotSupported` 且监听器不可用 | Plasma 6 Wayland，缺少构建依赖或协议 | **退化为锁屏状态**：已锁屏 → `max(锁屏时长, idle_threshold + 1)`；未锁屏 → `0` |
+| 找不到 `qdbus` 且监听器不可用 | 缺少依赖 | 恒 `0` |
 
-**这一档降级的实际影响**：未锁屏但人不在电脑前的时间，会被算作「在用」，屏幕使用
-时长统计会偏高。设备在线状态与前台窗口不受影响。想让统计更准，可以把系统设成
-较短时间自动锁屏。
+监听器由安装脚本从 `wayland-idle.c` 编译，在 Wayland 下优先使用 KWin 的
+`ext_idle_notifier_v1`；协议不可用时才退回锁屏状态判断。退化时未锁屏但人不在电脑前
+的时间会被算作「在用」。
 
 其它相关防御（PRD 风险 3）：
 
@@ -303,7 +308,7 @@ headless：跳过所有 kdotool / qdbus 调用，只上报心跳，`title` / `ap
 | HTTP `404` | `endpoint` 写错，应是站点根地址，不要带 `/api` |
 | `未找到 kdotool` | 见上面第 2 节；不装也能跑，只是没有窗口信息 |
 | 页面上窗口标题一直为空 | 确认在图形会话内运行（systemd user 服务而非 root/system 服务），且 `kdotool getactivewindow` 手动能出结果 |
-| 页面显示「无图形会话（headless，仅心跳）」 | 两种可能：① 真的没有图形会话（SSH / 无 `DISPLAY`）；② **有图形会话但 kdotool 缺失**。Agent 对这两种情况统一退化为 headless。看启动日志区分：若打印「未找到 kdotool」就是 ②，装好 kdotool（一键脚本或上面第 2 节）后 `systemctl --user restart uptimeflare-agent` |
+| 页面显示「当前无活动窗口」 | 当前没有窗口标题（切到桌面、锁屏、headless 或窗口采集失败）。查看 Agent 日志，若提示未找到 kdotool，请安装后重启服务。 |
 | 服务不自启 | 部分发行版的 user systemd 不会拉起 `graphical-session.target`。先查 `systemctl --user status graphical-session.target`；若确实没起，把 unit 的 `WantedBy` 改成 `default.target` 后 `daemon-reload` 重新 enable |
 | 日志里没有输出 | 脚本已按行 flush；用 `journalctl --user -u uptimeflare-agent -f` 看 |
 

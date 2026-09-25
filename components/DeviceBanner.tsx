@@ -8,7 +8,7 @@ import styles from '@/styles/device.module.css'
 
 /**
  * 猫猫日记流横幅（prototype renderFeed 的单条 banner）：
- * 气泡（窗口/锁定/headless）+ 最后心跳 + 今日活跃 + 7 天趋势 + 「使用详情」展开面板（需密钥）。
+ * 气泡（窗口/锁定/无活动窗口）+ 最后心跳 + 今日活跃 + 7 天趋势 + 「使用详情」展开面板（需密钥）。
  */
 export default function DeviceBanner({
   device,
@@ -31,7 +31,7 @@ export default function DeviceBanner({
 
   let bubble: React.ReactNode
   if (!device.has_window) {
-    bubble = <div className={[styles.bubble, styles.muted].join(' ')}>{t('device.headless')}</div>
+    bubble = <div className={[styles.bubble, styles.muted].join(' ')}>{t('device.noSession')}</div>
   } else if (hasKey || device.public_window) {
     bubble = (
       <div className={styles.bubble}>

@@ -5,7 +5,7 @@ import styles from '@/styles/device.module.css'
 
 /**
  * 当前窗口行（F7 字段分级，prototype windowLine）：
- * - headless 无窗口 → 提示行
+ * - 当前无窗口标题 → 提示行
  * - 已解锁或设备配置 publicWindow → app + title（publicWindow 且未解锁时附「公开」chip）
  * - 其余 → 🔒 锁定占位按钮（点击打开解锁弹窗）
  */

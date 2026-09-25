@@ -101,7 +101,7 @@
   "device.hourlyCurrent": "目前時段",
   "device.hourlyShare": "佔該小時 {{percent}}%",
   "device.hourlyNoActivity": "無活躍記錄",
-  "device.noSession": "💤 無圖形會話（headless，僅心跳）",
+  "device.noSession": "💤 目前沒有作用中的視窗",
   "device.publicChip": "公開",
   "header.tagline": "似了喵？",
   "mtn.upcoming": "即將開始",

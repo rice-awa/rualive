@@ -101,7 +101,7 @@
   "device.hourlyCurrent": "Current hour",
   "device.hourlyShare": "{{percent}}% of the hour",
   "device.hourlyNoActivity": "No active time",
-  "device.noSession": "💤 no GUI session (headless, heartbeat only)",
+  "device.noSession": "💤 No active window",
   "device.publicChip": "public",
   "header.tagline": "cat-alive status",
   "mtn.upcoming": "Upcoming",

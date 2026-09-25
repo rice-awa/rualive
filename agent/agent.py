@@ -29,6 +29,7 @@ import json
 import os
 import platform
 import re
+import select
 import shutil
 import signal
 import subprocess
@@ -90,6 +91,7 @@ QDBUS_CANDIDATES = ('qdbus6', 'qdbus-qt6', 'qdbus', 'qdbus-qt5')
 IDLE_MODE_SESSION = 'session_idle'  # GetSessionIdleTime 可用，拿到真实空闲秒数
 IDLE_MODE_LOCK = 'lock_state'       # 退化：只能靠锁屏状态判断离开
 IDLE_MODE_NONE = 'none'             # 完全不可用，idle 恒为 0
+IDLE_MODE_WAYLAND = 'wayland_idle'  # KWin Wayland 输入事件达到阈值
 
 KDOTOOL_INSTALL_HINT = (
     '  kdotool 安装指引： https://github.com/jinliu/kdotool\n'
@@ -357,10 +359,31 @@ def probe_qdbus() -> Tuple[Optional[str], str]:
     log_warn('GetSessionIdleTime 不可用：{0}'.format(detail.replace('\n', ' ')))
     log_warn(
         '  这是 Plasma 6 Wayland 的已知情况（KWin 未实现该接口）。'
-        '将退化为「锁屏状态」判断：锁屏视为离开，未锁屏视为在用。'
+        '将尝试 Wayland 输入空闲监听器；不可用时回退为锁屏判断。'
     )
-    log_warn('  影响：无法精确统计挂机时长，屏幕使用统计会把「未锁屏但没操作」也算作活跃。')
     return path, IDLE_MODE_LOCK
+
+
+def start_wayland_idle(threshold: int) -> Optional[subprocess.Popen]:
+    """Wayland 协议监听器持续报告 idle/active，避免逐次查询不支持的 D-Bus 方法。"""
+    path = shutil.which('uptimeflare-wayland-idle')
+    if not path or not os.environ.get('WAYLAND_DISPLAY'):
+        return None
+    try:
+        process = subprocess.Popen(
+            [path, str(threshold)], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            bufsize=1, text=True,
+        )
+        if not select.select([process.stdout], [], [], SUBPROCESS_TIMEOUT)[0] or \
+                process.stdout.readline().strip() != 'ready':
+            process.terminate()
+            process.wait(timeout=SUBPROCESS_TIMEOUT)
+            return None
+    except (OSError, ValueError, subprocess.TimeoutExpired) as exc:
+        log_warn('Wayland 输入空闲监听器启动失败：{0}'.format(exc))
+        return None
+    log_info('Wayland 输入空闲监听已启动，阈值 {0}s。'.format(threshold))
+    return process
 
 
 # ---------------------------------------------------------------------------
@@ -476,7 +499,8 @@ class IdleSampler:
     连续异常值只记日志，不中断上报；恒为 0 时额外提示一次「空闲检测可能不可用」。
     """
 
-    def __init__(self, qdbus_path: Optional[str], mode: str, idle_threshold: int):
+    def __init__(self, qdbus_path: Optional[str], mode: str, idle_threshold: int,
+                 wayland_process: Optional[subprocess.Popen] = None):
         self.qdbus_path = qdbus_path
         self.mode = mode
         self.idle_threshold = idle_threshold
@@ -484,11 +508,16 @@ class IdleSampler:
         self._clamped_streak = 0
         self._zero_streak = 0
         self._warned_stuck_zero = False
+        self.wayland_process = wayland_process
+        self._wayland_idle_since = None
+        self._wayland_buffer = b''
 
     def sample(self) -> int:
         """返回空闲秒数；不可用或异常时返回 0（服务端会按 idle_threshold 判活跃）。"""
         if self.mode == IDLE_MODE_SESSION:
             idle = self._sample_session_idle()
+        elif self.mode == IDLE_MODE_WAYLAND:
+            idle = self._sample_wayland_idle()
         elif self.mode == IDLE_MODE_LOCK:
             idle = self._sample_lock_state()
         else:
@@ -496,6 +525,30 @@ class IdleSampler:
 
         self._track_stuck_zero(idle)
         return idle
+
+    def _sample_wayland_idle(self) -> int:
+        process = self.wayland_process
+        if process.poll() is not None:
+            log_warn('Wayland 输入空闲监听器已退出，回退为锁屏判断。')
+            self.mode = IDLE_MODE_LOCK if self.qdbus_path else IDLE_MODE_NONE
+            return self.sample()
+        while select.select([process.stdout], [], [], 0)[0]:
+            chunk = os.read(process.stdout.fileno(), 4096)
+            if not chunk:
+                break
+            self._wayland_buffer += chunk
+            while b'\n' in self._wayland_buffer:
+                event, self._wayland_buffer = self._wayland_buffer.split(b'\n', 1)
+                if event == b'idle':
+                    self._wayland_idle_since = time.monotonic()
+                elif event == b'active':
+                    self._wayland_idle_since = None
+        if self._wayland_idle_since is not None:
+            return min(IDLE_MAX, self.idle_threshold + int(time.monotonic() - self._wayland_idle_since))
+        # 刚锁屏就应判为挂机，不必等待完整的输入空闲阈值。
+        if self.qdbus_path:
+            return self._sample_lock_state()
+        return 0
 
     def _sample_session_idle(self) -> int:
         ok, stdout, stderr = run_command(
@@ -763,31 +816,43 @@ def main(argv=None) -> int:
     if graphical:
         kdotool_path = probe_kdotool()
         qdbus_path, idle_mode = probe_qdbus()
+        if idle_mode != IDLE_MODE_SESSION:
+            wayland_process = start_wayland_idle(config.idle_threshold)
+            if wayland_process:
+                idle_mode = IDLE_MODE_WAYLAND
+            else:
+                log_warn('Wayland 输入空闲监听不可用；未锁屏时无法判断挂机。')
     else:
         log_warn('未检测到 WAYLAND_DISPLAY / DISPLAY，按 headless 运行：只上报心跳，跳过窗口与空闲采集。')
         kdotool_path, qdbus_path, idle_mode = None, None, IDLE_MODE_NONE
 
     window_sampler = WindowSampler(kdotool_path)
-    idle_sampler = IdleSampler(qdbus_path, idle_mode, config.idle_threshold)
+    idle_sampler = IdleSampler(qdbus_path, idle_mode, config.idle_threshold,
+                               wayland_process if graphical and idle_mode == IDLE_MODE_WAYLAND else None)
     reporter = Reporter(config, os_version)
 
     shutdown = ShutdownFlag()
 
-    if args.once:
-        run_cycle(window_sampler, idle_sampler, reporter, graphical, args.dry_run)
-        return 0
-
-    log_info('进入主循环（Ctrl-C 或 SIGTERM 退出）。')
-    while not shutdown.triggered:
-        cycle_start = time.monotonic()
-        try:
+    try:
+        if args.once:
             run_cycle(window_sampler, idle_sampler, reporter, graphical, args.dry_run)
-        except Exception as exc:  # noqa: BLE001 - 兜底：任何漏网异常都不能让守护进程退出
-            log_error('本周期出现未预期异常（已跳过，下个周期继续）：{0!r}'.format(exc))
-        shutdown.sleep_until(cycle_start + config.interval)
+            return 0
 
-    log_info('已退出。')
-    return 0
+        log_info('进入主循环（Ctrl-C 或 SIGTERM 退出）。')
+        while not shutdown.triggered:
+            cycle_start = time.monotonic()
+            try:
+                run_cycle(window_sampler, idle_sampler, reporter, graphical, args.dry_run)
+            except Exception as exc:  # noqa: BLE001 - 兜底：任何漏网异常都不能让守护进程退出
+                log_error('本周期出现未预期异常（已跳过，下个周期继续）：{0!r}'.format(exc))
+            shutdown.sleep_until(cycle_start + config.interval)
+
+        log_info('已退出。')
+        return 0
+    finally:
+        if idle_sampler.wayland_process and idle_sampler.wayland_process.poll() is None:
+            idle_sampler.wayland_process.terminate()
+            idle_sampler.wayland_process.wait(timeout=SUBPROCESS_TIMEOUT)
 
 
 if __name__ == '__main__':
