@@ -1,0 +1,250 @@
+/* 圆团猫猫 V2：独立配色，避免受页面主题的同名变量影响。 */
+.cat {
+  --cat-ink: #4a3b2c;
+  --cat-muted: #857969;
+  --cat-ease: cubic-bezier(0.77, 0, 0.175, 1);
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.ink {
+  stroke: var(--cat-ink);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.line {
+  fill: none;
+  stroke: var(--cat-ink);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.fur {
+  fill: var(--cat-fur);
+}
+.cream {
+  fill: #fff5df;
+}
+.pink {
+  fill: #e8aaa0;
+}
+.shadow {
+  fill: #4a3b2c;
+  opacity: 0.08;
+  transform-origin: 150px 237px;
+}
+.online {
+  --cat-fur: #bddb98;
+}
+.idle {
+  --cat-fur: #cfc7b8;
+}
+.offline {
+  --cat-fur: #b9ad9c;
+}
+.online .body {
+  transform-origin: 150px 232px;
+  animation: breathe 4s var(--cat-ease) infinite;
+}
+.online .tail {
+  transform-origin: 195px 199px;
+  animation: tail 3.2s var(--cat-ease) infinite;
+}
+.online .head {
+  transform-origin: 150px 164px;
+  animation: look 8s var(--cat-ease) infinite;
+}
+.online .eyes {
+  transform-origin: 150px 124px;
+  animation: blink 5.6s linear infinite;
+}
+.online .ear-tip {
+  transform-origin: 101px 88px;
+  animation: ear 8s var(--cat-ease) infinite;
+}
+.idle .sleeper {
+  transform-origin: 150px 228px;
+  animation: sleep 4.8s var(--cat-ease) infinite;
+}
+.idle .tail-tip {
+  transform-origin: 206px 203px;
+  animation: sleep-tail 9.6s var(--cat-ease) infinite;
+}
+.zzz {
+  fill: var(--cat-muted);
+  font:
+    bold 19px Georgia,
+    serif;
+  animation: dream 4.8s linear infinite;
+}
+.zzz.second {
+  font-size: 25px;
+  animation-delay: -2.4s;
+}
+.offline .spirit {
+  animation: float 4.8s var(--cat-ease) infinite;
+}
+.offline .halo {
+  transform-origin: 150px 52px;
+  animation: halo 4.8s var(--cat-ease) infinite;
+}
+.wing-left {
+  transform-origin: 112px 166px;
+  animation: wing-left 2.4s var(--cat-ease) infinite;
+}
+.wing-right {
+  transform-origin: 188px 166px;
+  animation: wing-right 2.4s var(--cat-ease) infinite;
+}
+.offline .shadow {
+  animation: shadow 4.8s var(--cat-ease) infinite;
+}
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(1.025);
+  }
+}
+@keyframes tail {
+  0%,
+  100% {
+    transform: rotate(-7deg);
+  }
+  50% {
+    transform: rotate(10deg);
+  }
+}
+@keyframes look {
+  0%,
+  35%,
+  75%,
+  100% {
+    transform: rotate(0);
+  }
+  45%,
+  62% {
+    transform: rotate(-4deg);
+  }
+}
+@keyframes blink {
+  0%,
+  42%,
+  46%,
+  72%,
+  76%,
+  100% {
+    transform: scaleY(1);
+  }
+  44%,
+  74% {
+    transform: scaleY(0.08);
+  }
+}
+@keyframes ear {
+  0%,
+  63%,
+  75%,
+  100% {
+    transform: rotate(0);
+  }
+  67% {
+    transform: rotate(-9deg);
+  }
+  71% {
+    transform: rotate(3deg);
+  }
+}
+@keyframes sleep {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  50% {
+    transform: scale(1.018, 1.045);
+  }
+}
+@keyframes sleep-tail {
+  0%,
+  70%,
+  100% {
+    transform: rotate(0);
+  }
+  80% {
+    transform: rotate(-7deg);
+  }
+  90% {
+    transform: rotate(2deg);
+  }
+}
+@keyframes dream {
+  0% {
+    opacity: 0;
+    transform: translate(-3px, 7px);
+  }
+  20%,
+  65% {
+    opacity: 0.75;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(9px, -26px);
+  }
+}
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(3px);
+  }
+  50% {
+    transform: translateY(-9px);
+  }
+}
+@keyframes halo {
+  0%,
+  100% {
+    transform: rotate(-7deg);
+  }
+  50% {
+    transform: rotate(7deg);
+  }
+}
+@keyframes wing-left {
+  0%,
+  100% {
+    transform: rotate(5deg);
+  }
+  50% {
+    transform: rotate(-13deg);
+  }
+}
+@keyframes wing-right {
+  0%,
+  100% {
+    transform: rotate(-5deg);
+  }
+  50% {
+    transform: rotate(13deg);
+  }
+}
+@keyframes shadow {
+  0%,
+  100% {
+    transform: scaleX(1);
+    opacity: 0.09;
+  }
+  50% {
+    transform: scaleX(0.8);
+    opacity: 0.05;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cat * {
+    animation: none !important;
+  }
+}

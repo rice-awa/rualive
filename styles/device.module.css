@@ -126,72 +126,6 @@
   color: var(--ink-soft);
 }
 
-/* ============ 猫猫（prototype .cat 系列，含动画） ============ */
-.cat {
-  display: block;
-  overflow: visible;
-}
-.catOnline {
-  animation: catBounce 2.6s ease-in-out infinite;
-}
-@keyframes catBounce {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-4px);
-  }
-}
-.tailg {
-  transform-box: view-box;
-  transform-origin: 88px 94px;
-}
-.catOnline .tailg {
-  animation: tailSway 3s ease-in-out infinite;
-}
-.catIdle .tailg {
-  animation: tailSway 6.5s ease-in-out infinite;
-}
-@keyframes tailSway {
-  0%,
-  100% {
-    transform: rotate(0);
-  }
-  50% {
-    transform: rotate(-9deg);
-  }
-}
-.zz {
-  font-family: inherit;
-  font-weight: 800;
-  font-size: 14px;
-  fill: var(--ink-soft);
-  animation: zFloat 2.6s ease-in-out infinite;
-}
-.zz2 {
-  animation-delay: 1.3s;
-}
-@keyframes zFloat {
-  0% {
-    opacity: 0;
-    transform: translateY(5px);
-  }
-  30% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-9px);
-  }
-}
-.ln {
-  stroke: #4a3b2c;
-  stroke-width: 2.4;
-  fill: none;
-  stroke-linecap: round;
-}
-
 /* ============ 指挥台 hero（主页变体上半） ============ */
 .hero {
   background: var(--paper-2);
@@ -923,10 +857,6 @@
 
 /* ============ 可访问性：尊重减少动态偏好 ============ */
 @media (prefers-reduced-motion: reduce) {
-  .catOnline,
-  .catOnline .tailg,
-  .catIdle .tailg,
-  .zz,
   .acard,
   .hcolNow,
   .toast {
