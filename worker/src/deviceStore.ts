@@ -73,7 +73,7 @@ export async function appendDeviceEvent(
     .run()
 }
 
-/** 原子累加 usage_daily（当日该 app 时长） */
+/** 原子累加 usage_daily（当日该 app 或 idle 时长） */
 export async function incrementUsageDaily(
   env: Env,
   deviceId: string,
@@ -95,7 +95,7 @@ export async function listDeviceStatus(env: Env): Promise<DeviceStatusRecord[]> 
   return res.results ?? []
 }
 
-/** 今日活跃总时长（秒）；无数据返回 0 */
+/** 今日记录总时长（秒，含挂机）；无数据返回 0 */
 export async function sumToday(env: Env, deviceId: string, date: string): Promise<number> {
   const res = await env.UPTIMEFLARE_D1.prepare(
     `SELECT SUM(duration) AS total FROM usage_daily WHERE device_id = ? AND date = ?`
@@ -120,22 +120,24 @@ export async function getUsageDaily(
   return res.results ?? []
 }
 
-/** 当日逐小时活跃秒数（从 device_events 按小时桶聚合，仅统计 idle < idleThreshold 的活跃样本） */
+/** 当日逐小时秒数：保留 active_seconds 的活跃口径，total_seconds 包含挂机 */
 export async function getHourlyToday(
   env: Env,
   deviceId: string,
   dayStartTs: number,
   idleThreshold: number,
   intervalSeconds: number
-): Promise<{ hour: number; active_seconds: number }[]> {
+): Promise<{ hour: number; active_seconds: number; total_seconds: number }[]> {
   const res = await env.UPTIMEFLARE_D1.prepare(
-    `SELECT CAST((ts - ?) / 3600 AS INTEGER) AS hour, COUNT(*) * ? AS active_seconds
+    `SELECT CAST((ts - ?) / 3600 AS INTEGER) AS hour,
+       SUM(CASE WHEN idle < ? THEN 1 ELSE 0 END) * ? AS active_seconds,
+       COUNT(*) * ? AS total_seconds
      FROM device_events
-     WHERE device_id = ? AND ts >= ? AND ts < ? AND idle < ?
+     WHERE device_id = ? AND ts >= ? AND ts < ?
      GROUP BY hour`
   )
-    .bind(dayStartTs, intervalSeconds, deviceId, dayStartTs, dayStartTs + 86400, idleThreshold)
-    .all<{ hour: number; active_seconds: number }>()
+    .bind(dayStartTs, idleThreshold, intervalSeconds, intervalSeconds, deviceId, dayStartTs, dayStartTs + 86400)
+    .all<{ hour: number; active_seconds: number; total_seconds: number }>()
   return res.results ?? []
 }
 

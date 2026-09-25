@@ -23,7 +23,7 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
  * 使用统计读取（PRD F4 / §7.4）。
  * - 仅 X-API-Key 可访问：无 key 或 key 无效一律 401（与 status 接口的字段分级不同，此处用于解锁弹窗验证）
  * - 仅配置内 device_id 可查；设备未开启 usageTracking 时返回空聚合
- * - ?days=N&date=YYYY-MM-DD：daily 从 date-days+1 到 date；hourly_today 为 date 当日逐小时（PRD schema 只有 active_seconds 合计，不做 per-app 拆分）
+ * - ?days=N&date=YYYY-MM-DD：daily 从 date-days+1 到 date；hourly_today 为 date 当日逐小时（active_seconds 为活跃秒数，total_seconds 含挂机，不做 per-app 拆分）
  */
 export default async function handler(req: NextRequest): Promise<Response> {
   if (req.method === 'OPTIONS') {
@@ -83,9 +83,9 @@ export default async function handler(req: NextRequest): Promise<Response> {
     .map(([d, agg]) => ({ date: d, ...agg }))
     .sort((a, b) => (a.date < b.date ? -1 : 1))
 
-  // 当日逐小时（从 device_events 按活跃样本聚合）
+  // 当日逐小时（从 device_events 聚合，分别返回活跃与含挂机的总时长）
   const usageTracking = deviceConfig.usageTracking ?? false
-  let hourlyToday: { hour: number; active_seconds: number }[] = []
+  let hourlyToday: { hour: number; active_seconds: number; total_seconds: number }[] = []
   if (usageTracking) {
     const dayStart = dayStartInTimeZone(now, timeZone)
     hourlyToday = await getHourlyToday(

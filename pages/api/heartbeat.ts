@@ -21,7 +21,7 @@ const MAX_OS = 64
  * - 鉴权：Authorization: Bearer <AGENT_TOKEN>，常量时间比较，失败一律 401
  * - device_id / title / app 字段必须存在（headless 设备的 title/app 可为空串）
  * - 服务端一律使用自己的时间戳，不信任 client_time
- * - usageTracking 设备：追加 device_events 采样；idle < idleThreshold 时原子累加 usage_daily
+ * - usageTracking 设备：追加 device_events 采样；按应用或 idle 分类原子累加 usage_daily
  * - 不回 CORS 头（非浏览器调用方）
  */
 export default async function handler(req: NextRequest): Promise<Response> {
@@ -95,7 +95,7 @@ export default async function handler(req: NextRequest): Promise<Response> {
     const intervalSeconds = deviceConfig.intervalSeconds ?? 30
     const timeZone = workerConfig.notification?.timeZone ?? 'Asia/Shanghai'
 
-    // 原始采样（所有心跳都记，聚合时按 idle 过滤活跃样本）
+    // 原始采样（所有心跳都记，聚合时区分活跃与挂机样本）
     await appendDeviceEvent(process.env as any, {
       device_id: deviceId,
       ts: now,
@@ -104,11 +104,10 @@ export default async function handler(req: NextRequest): Promise<Response> {
       idle: Math.round(idle),
     })
 
-    // 活跃样本计入当日该 app 时长（原子累加）
-    if (idle < idleThreshold) {
-      const date = dateInTimeZone(now, timeZone)
-      await incrementUsageDaily(process.env as any, deviceId, date, app || 'unknown', intervalSeconds)
-    }
+    // 挂机单独归入 idle，避免算到前台应用或 unknown；两类都计入总时长。
+    const date = dateInTimeZone(now, timeZone)
+    const usageApp = idle >= idleThreshold ? 'idle' : app || 'unknown'
+    await incrementUsageDaily(process.env as any, deviceId, date, usageApp, intervalSeconds)
   }
 
   return new Response(null, { status: 204 })

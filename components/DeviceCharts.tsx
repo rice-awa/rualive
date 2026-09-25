@@ -20,7 +20,7 @@ const PALETTE = [
 
 export type UsageResponse = {
   daily: { date: string; total_seconds: number; by_app: Record<string, number> }[]
-  hourly_today: { hour: number; active_seconds: number }[]
+  hourly_today: { hour: number; active_seconds: number; total_seconds?: number }[]
 }
 
 /**
@@ -77,13 +77,13 @@ export function AppBars({ data, top = 10 }: { data: UsageResponse | null; top?: 
   )
 }
 
-/** 24 小时逐小时活跃柱状图（prototype hourlyChart）；hourly_today 缺桶补 0 */
+/** 24 小时逐小时记录时长柱状图（含挂机）（prototype hourlyChart）；hourly_today 缺桶补 0 */
 export function HourlyChart({
   hourly,
   now,
   compact = false,
 }: {
-  hourly: { hour: number; active_seconds: number }[] | null | undefined
+  hourly: { hour: number; active_seconds: number; total_seconds?: number }[] | null | undefined
   now: number
   compact?: boolean
 }) {
@@ -93,7 +93,7 @@ export function HourlyChart({
   if (!hourly) return null
   const vals = new Array<number>(24).fill(0)
   for (const h of hourly) {
-    const value = Number(h.active_seconds)
+    const value = Number(h.total_seconds ?? h.active_seconds)
     if (Number.isInteger(h.hour) && h.hour >= 0 && h.hour < 24 && Number.isFinite(value)) {
       vals[h.hour] = Math.max(0, value)
     }
