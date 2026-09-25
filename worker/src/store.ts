@@ -6,6 +6,27 @@ import {
   MonitorStateCompacted,
 } from '../../types/config'
 
+// Pages 客户端也会解压状态，不能依赖旧版手机浏览器缺少的 fromHex / toHex。
+// 保持现有十六进制字节格式，不改变 D1 数据或 TypedArray 字节顺序。
+function decodeHex(hex: string): Uint8Array {
+  if (hex.length % 2 !== 0 || /[^0-9a-f]/i.test(hex)) {
+    throw new SyntaxError('Invalid hexadecimal monitor data')
+  }
+  const bytes = new Uint8Array(hex.length / 2)
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16)
+  }
+  return bytes
+}
+
+function encodeHex(bytes: Uint8Array): string {
+  let hex = ''
+  for (let i = 0; i < bytes.length; i++) {
+    hex += bytes[i].toString(16).padStart(2, '0')
+  }
+  return hex
+}
+
 export async function getFromStore(env: Env, key: string): Promise<string | null> {
   const stmt = env.UPTIMEFLARE_D1.prepare('SELECT value FROM uptimeflare WHERE key = ?')
   const result = await stmt.bind(key).first<{ value: string }>()
@@ -83,10 +104,8 @@ export class CompactedMonitorStateWrapper {
         }
       })
 
-      // @ts-expect-error
-      const timeArr = new Uint32Array(Uint8Array.fromHex(latencies.time).buffer)
-      // @ts-expect-error
-      const pingArr = new Uint16Array(Uint8Array.fromHex(latencies.ping).buffer)
+      const timeArr = new Uint32Array(decodeHex(latencies.time).buffer)
+      const pingArr = new Uint16Array(decodeHex(latencies.ping).buffer)
 
       if (timeArr.length !== pingArr.length || timeArr.length !== locUncompacted.length) {
         throw new Error(
@@ -185,10 +204,8 @@ export class CompactedMonitorStateWrapper {
       latencies = this.data.latency[monitorId]
     }
 
-    // @ts-expect-error
-    latencies.time += new Uint8Array(new Uint32Array([record.time]).buffer).toHex()
-    // @ts-expect-error
-    latencies.ping += new Uint8Array(new Uint16Array([record.ping]).buffer).toHex()
+    latencies.time += encodeHex(new Uint8Array(new Uint32Array([record.time]).buffer))
+    latencies.ping += encodeHex(new Uint8Array(new Uint16Array([record.ping]).buffer))
 
     if (latencies.loc.v[latencies.loc.v.length - 1] !== record.loc) {
       latencies.loc.c.push(1)
@@ -202,10 +219,8 @@ export class CompactedMonitorStateWrapper {
     let latencies = this.data.latency[monitorId]
 
     return {
-      // @ts-expect-error
-      time: new Uint32Array(Uint8Array.fromHex(latencies.time.slice(0, 8)).buffer)[0],
-      // @ts-expect-error
-      ping: new Uint16Array(Uint8Array.fromHex(latencies.ping.slice(0, 4)).buffer)[0],
+      time: new Uint32Array(decodeHex(latencies.time.slice(0, 8)).buffer)[0],
+      ping: new Uint16Array(decodeHex(latencies.ping.slice(0, 4)).buffer)[0],
       loc: latencies.loc.v[0],
     }
   }
@@ -214,10 +229,8 @@ export class CompactedMonitorStateWrapper {
     let latencies = this.data.latency[monitorId]
 
     return {
-      // @ts-expect-error
-      time: new Uint32Array(Uint8Array.fromHex(latencies.time.slice(-8)).buffer)[0],
-      // @ts-expect-error
-      ping: new Uint16Array(Uint8Array.fromHex(latencies.ping.slice(-4)).buffer)[0],
+      time: new Uint32Array(decodeHex(latencies.time.slice(-8)).buffer)[0],
+      ping: new Uint16Array(decodeHex(latencies.ping.slice(-4)).buffer)[0],
       loc: latencies.loc.v[latencies.loc.v.length - 1],
     }
   }
