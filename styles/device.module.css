@@ -141,9 +141,15 @@
   flex-wrap: wrap;
 }
 .heroCat {
-  width: 165px;
-  height: 158px;
+  width: 240px;
+  height: 216px;
   flex: none;
+}
+@media (max-width: 600px) {
+  .heroCat {
+    width: 190px;
+    height: 171px;
+  }
 }
 .heroStatus {
   font-size: 33px;
