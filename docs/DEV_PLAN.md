@@ -112,7 +112,7 @@ Footer（现有）
 | # | 任务 | 说明 | 主要文件 | 依赖 | 估时 |
 |---|---|---|---|---|---|
 | T19 | **下线/上线通知** | worker cron 末尾读 `device_status` + `workerConfig.devices`，翻转时复用 `webhookNotify` 发 Resend 邮件；新增 `device_notify_state` 小表记上次状态防重复通知；消息文案按 PRD §F6 | `worker/src/index.ts`、`worker/src/deviceStore.ts`、`init.sql` | T2, T3 | 1d |
-| T20 | **事件过期清理** | cron 顺带 `DELETE FROM device_events WHERE ts < now - 14d` | `worker/src/deviceStore.ts` | T19 | 0.2d |
+| T20 | **事件过期清理** | cron 顺带 `DELETE FROM device_events WHERE ts < now - 14d`，**每小时一次**（`currentTimeSecond % 3600 < 60`）；每分钟跑会让 D1 rows read 放大 1440 倍 | `worker/src/deviceStore.ts`、`worker/src/index.ts`、`init.sql`(索引) | T19 | 0.2d |
 | T21 | **收尾（可选）** | `title_filter` 隐私过滤、headless Agent（仅心跳）、i18n en 补齐、Plasma 5 (kdotool v0.2.x) 支持评估 | 多处 | — | 1–2d |
 
 **合计约 14.5–15.5 个工作日**（不含 T21 可选部分），其中 M1 ≈ 9.5d，M2 ≈ 3.5d，M3 ≈ 1.5d。
@@ -174,6 +174,9 @@ CREATE TABLE IF NOT EXISTS device_events (
   PRIMARY KEY (device_id, ts)
 );
 
+-- 清理（DELETE WHERE ts < ?）与时间范围聚合走这个索引；缺它会全表扫描（D1 rows read 大头）
+CREATE INDEX IF NOT EXISTS idx_device_events_ts ON device_events(ts);
+
 -- 每日使用聚合（长期统计，永不清理）；仅 usageTracking=true 时写入
 CREATE TABLE IF NOT EXISTS usage_daily (
   device_id TEXT NOT NULL,
@@ -202,7 +205,7 @@ CREATE TABLE IF NOT EXISTS device_notify_state (
 | `getUsageDaily(env, deviceId, fromDate)` | `SELECT date, app, duration ... WHERE device_id=? AND date>=?` |
 | `getHourlyToday(env, deviceId, dayStartTs)` | `SELECT ts, duration` 由 events 按小时桶聚合（或 SQL `strftime('%H', ts, 'unixepoch')`） |
 | `getNotifyState / setNotifyState(env, deviceId, online)` | 见 `device_notify_state` |
-| `cleanupDeviceEvents(env, beforeTs)` | `DELETE FROM device_events WHERE ts < ?` |
+| `cleanupDeviceEvents(env, beforeTs)` | `DELETE FROM device_events WHERE ts < ?`（依赖 `idx_device_events_ts`，否则全表扫描） |
 
 切日时间戳：edge/worker 运行时用 `new Intl.DateTimeFormat('en-CA', { timeZone, ... })` 计算 `YYYY-MM-DD` 与当日 0 点时间戳，**不要用服务器时区猜**。时区取 `workerConfig.notification?.timeZone ?? 'Asia/Shanghai'` 或设备级配置。
 

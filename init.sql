@@ -25,6 +25,11 @@ CREATE TABLE IF NOT EXISTS device_events (
   PRIMARY KEY (device_id, ts)
 );
 
+-- 清理（DELETE WHERE ts < ?）与按时间范围的聚合走这个索引。
+-- 主键 (device_id, ts) 的前导列是 device_id，服务不了纯 ts 范围条件 —— 缺这个索引会退化成
+-- 每次全表扫描，D1 rows read 会被打满（详见 worker/src/index.ts 的清理注释）。
+CREATE INDEX IF NOT EXISTS idx_device_events_ts ON device_events(ts);
+
 -- 每日使用聚合（长期统计，永不清理）；仅 usageTracking=true 的设备写入
 CREATE TABLE IF NOT EXISTS usage_daily (
   device_id TEXT NOT NULL,

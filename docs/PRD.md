@@ -305,6 +305,10 @@ CREATE TABLE IF NOT EXISTS device_events (
   PRIMARY KEY (device_id, ts)
 );
 
+-- 清理（DELETE WHERE ts < ?）与时间范围聚合走这个索引。主键 (device_id, ts) 的前导列是
+-- device_id，服务不了纯 ts 范围条件 —— 缺它会退化成全表扫描，是 D1 rows read 的主要消耗源
+CREATE INDEX IF NOT EXISTS idx_device_events_ts ON device_events(ts);
+
 -- 每日使用聚合（长期统计，永不清理）
 -- 仅对该设备 usageTracking: true 时写入
 CREATE TABLE IF NOT EXISTS usage_daily (
@@ -322,9 +326,13 @@ CREATE TABLE IF NOT EXISTS usage_daily (
 **容量评估**（D1 免费档：10 万行写/天，500 万行读/天，5GB 存储）：
 - 写入：30s 心跳 ≈ 2,880 行/天（events）+ 1 行 UPSERT + usage_daily 增量，远低于限额
 - 读取：前端 30s 轮询读聚合表 ≈ 2,880 行读/天，无压力
+  - ⚠️ 真正的读取大头不是轮询，而是 `device_events` 的过期清理：`WHERE ts < ?` 用不上主键
+    `(device_id, ts)`，若缺 `idx_device_events_ts` 且挂在每分钟 cron 上，一次全表扫描 × 1440/天
+    即可吃掉整个免费档读取额度（实测 ~3.9M 行/天）。索引 + 每小时清理后回落到可忽略水平。
 - 存储：events 14 天 ≈ 4 万行；usage_daily 1 设备 1 年 ≈ 3,000–1 万行，可忽略
 
-**清理策略**：`device_events` 由 Worker cron 每天顺手 `DELETE WHERE ts < now - 14d`（或上报时低频抽查执行）。
+**清理策略**：`device_events` 由 Worker cron 每小时顺手执行一次 `DELETE WHERE ts < now - 14d`
+（保留期以天计，无需每分钟跑；配合 `idx_device_events_ts` 走索引范围扫描）。
 
 ---
 

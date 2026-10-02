@@ -297,10 +297,14 @@ const Worker = {
     }
 
     // 事件过期清理（T20）：device_events 原始采样只保留 14 天
-    try {
-      await cleanupDeviceEvents(env, currentTimeSecond - 14 * 24 * 60 * 60)
-    } catch (e) {
-      console.log('Error cleaning up device events: ' + e)
+    // 保留期以「天」计，每小时跑一次即可；挂在每分钟的 cron 上会让 D1 rows read 被无谓放大
+    // 1440 倍（配合 init.sql 的 idx_device_events_ts，删除走索引范围扫描而非全表扫描）
+    if (currentTimeSecond % 3600 < 60) {
+      try {
+        await cleanupDeviceEvents(env, currentTimeSecond - 14 * 24 * 60 * 60)
+      } catch (e) {
+        console.log('Error cleaning up device events: ' + e)
+      }
     }
   },
 }
