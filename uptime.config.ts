@@ -86,7 +86,7 @@ const workerConfig: WorkerConfig = {
       os: 'linux',
       offlineAfterSeconds: 90,
       usageTracking: true,
-      publicWindow: true,
+      publicApp: true,
     },
     {
       id: 'riceawa-desktop',
@@ -96,8 +96,8 @@ const workerConfig: WorkerConfig = {
       offlineAfterSeconds: 90,
       // 开启屏幕使用时长统计（不写密钥；统计按 app 聚合）
       usageTracking: true,
-      // 当前窗口标题默认需 USAGE_API_KEY 解锁
-      publicWindow: false,
+      // 未解锁时只公开应用名，窗口标题仍需 USAGE_API_KEY
+      publicApp: false,
     },
   ],
   notification: {

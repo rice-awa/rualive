@@ -98,7 +98,7 @@ cd ..
 - 在 `workerConfig.monitors` 中添加网站或服务目标。
 - 在 `workerConfig.devices` 中添加需要上报心跳的设备。
 - 只对确实需要记录活动的设备设置 `usageTracking: true`。
-- 除非允许访客看到当前窗口，否则保持 `publicWindow: false`。
+- 未解锁时是否公开当前应用名由 `publicApp` 控制；窗口标题始终需要密钥，不会公开。
 
 设备配置示例：
 
@@ -110,7 +110,7 @@ devices: [
     os: 'Linux / KDE Plasma',
     offlineAfterSeconds: 90,
     usageTracking: true,
-    publicWindow: false,
+    publicApp: false,
   },
 ],
 ```
@@ -220,7 +220,7 @@ curl --request POST "$RUALIVE_URL/api/heartbeat" \
 
 - `AGENT_TOKEN` 只用于接收设备心跳。
 - `USAGE_API_KEY` 用于解锁使用统计和私有窗口数据。
-- 没有有效 usage key 时，`/api/device/status` 会隐藏 `last_title` 和 `last_app`，除非设备显式配置 `publicWindow: true`。
+- 没有有效 usage key 时，`/api/device/status` 的 `last_title` 始终为 `null`；`last_app` 仅在设备显式配置 `publicApp: true` 时公开。
 - 心跳在线状态使用服务端时间戳计算，不信任客户端时间。
 - `agent/agent.json` 和 `.dev.vars` 已被 Git 忽略，请勿提交。
 

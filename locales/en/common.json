@@ -102,7 +102,6 @@
   "device.hourlyShare": "{{percent}}% of the hour",
   "device.hourlyNoActivity": "No recorded time",
   "device.noSession": "💤 No active window",
-  "device.publicChip": "public",
   "header.tagline": "cat-alive status",
   "mtn.upcoming": "Upcoming",
   "mtn.active": "Active",

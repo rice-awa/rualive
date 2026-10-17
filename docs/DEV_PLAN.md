@@ -85,7 +85,7 @@ Footer（现有）
 | T2 | **数据层** | `init.sql` 新增 `device_status` / `device_events` / `usage_daily` 三表（§5.1 完整 SQL）；新建 `worker/src/deviceStore.ts`（UPSERT/插入/聚合/清理函数） | `init.sql`、`worker/src/deviceStore.ts`(新) | — | 1d |
 | T3 | **配置类型** | `types/config.ts` 新增 `DeviceConfig` + `WorkerConfig.devices`；`uptime.config.ts` 加示例设备（不填密钥） | `types/config.ts`、`uptime.config.ts` | T2 | 0.3d |
 | T4 | **心跳 API** | `POST /api/heartbeat`：`AGENT_TOKEN` 常量时间校验 → UPSERT `device_status`；**M1 阶段全部按 `usageTracking:false` 处理**（不写 events/usage_daily），埋好配置读取点 | `pages/api/heartbeat.ts`(新) | T2, T3 | 0.7d |
-| T5 | **设备状态 API** | `GET /api/device/status`：公开字段（在线/挂机/离线、最后活跃、今日总时长、设备名）+ `X-API-Key`/`publicWindow` 分级窗口字段；CORS 头加 `X-API-Key` | `pages/api/device/status.ts`(新) | T2, T3 | 0.7d |
+| T5 | **设备状态 API** | `GET /api/device/status`：公开字段（在线/挂机/离线、最后活跃、今日总时长、设备名）+ `X-API-Key`/`publicApp` 分级窗口字段；CORS 头加 `X-API-Key` | `pages/api/device/status.ts`(新) | T2, T3 | 0.7d |
 | T6 | **密钥工具 + 解锁弹窗** | `util/usageKey.ts`（localStorage 键 `uf_usage_key`）；`DeviceUnlockModal`（animal-island-ui `Modal`+`Input`）；锁定按钮；401 自动清缓存 | `util/usageKey.ts`(新)、`components/DeviceUnlockModal.tsx`(新) | T1, T5 | 0.7d |
 | T7 | **猫猫图标** | 三态（活跃/挂机/离线）动森风 SVG，直接用 prototype 的 `catSVG()` 移植为 React 组件（内置 10 图标无猫，需自制） | `components/DeviceCat.tsx`(新) | — | 0.5d |
 | T8 | **设备区 UI · 主页变体** | 复刻 prototype 主页：`DeviceSection`（指挥台 hero + 卡片墙）+ `DeviceCard` + 详情 overlay 骨架，30s 轮询 hook（`useDeviceStatus`）；集成进 `index.tsx`（OverallStatus 与 MonitorList 之间） | `components/DeviceSection.tsx`、`DeviceHero.tsx`、`DeviceCard.tsx`、`util/useDeviceStatus.ts`(均新)、`pages/index.tsx` | T1, T5, T6, T7 | 1.2d |
@@ -214,7 +214,7 @@ CREATE TABLE IF NOT EXISTS device_notify_state (
 - **常量时间比较**：复用 `middleware.ts:12-20` 的写法，封装 `util/timingSafeEqual(a: string, b: string): boolean`，供 heartbeat 与 device API 共用。两个 secret 都从 `process.env` 读取（本地开发用 `wrangler pages dev` 的 `.dev.vars`）。
 - **`AGENT_TOKEN`（heartbeat）**：Header `Authorization: Bearer <AGENT_TOKEN>`。失败一律 `401`；缺 `device_id`/`title`/`app` → `400`。字段截断（title 200 / app 64）。请求体先读 `content-length` 或按 4KB 上限截断。不回 CORS 头（非浏览器调用方）。
 - **`USAGE_API_KEY`（读取）**：Header `X-API-Key`。分级规则严格按 PRD §F7 表：
-  - `/api/device/status`：无 key 或 key 无效 → `last_title`/`last_app` 为 `null`（除非 `publicWindow:true`）；**key 无效与无 key 表现一致，不额外报错**（防枚举，前端只需区分"有没有详细字段"）。
+  - `/api/device/status`：无 key 或 key 无效 → `last_title` 为 `null`，`last_app` 仅在 `publicApp:true` 时公开；**key 无效与无 key 表现一致，不额外报错**（防枚举，前端只需区分"有没有详细字段"）。
   - `/api/device/usage`：无 key 或无效 → 一律 `401`。
   - CORS `Access-Control-Allow-Headers` 追加 `X-API-Key`（`pages/api/data.ts` 已有头模板可参考）。
 - **在线判定（无状态）**：读取方按 `now - last_seen` 实时算：`> offlineAfterSeconds`（默认 90）→ 离线；在线且 `last_idle >= idleThreshold`（默认 120）→ 挂机；否则活跃。写库时不更新状态字段。
@@ -222,7 +222,7 @@ CREATE TABLE IF NOT EXISTS device_notify_state (
 ### 5.3 前端（T6–T9、T16）
 
 - **数据流**：
-  - `getServerSideProps`（`pages/index.tsx`）读 `workerConfig.devices` + `listDeviceStatus` + `sumToday`，把**公开**字段作为 `devices` props 传入（在线/挂机/离线、last_seen、today_total、usage_tracking、publicWindow）。
+  - `getServerSideProps`（`pages/index.tsx`）读 `workerConfig.devices` + `listDeviceStatus` + `sumToday`，把**公开**字段作为 `devices` props 传入（在线/挂机/离线、last_seen、today_total、usage_tracking、publicApp）。
   - 客户端 `useDeviceStatus` hook 每 30s `fetch('/api/device/status')`，带本地 `uf_usage_key`（若有）→ 合并详细字段；每 30s 刷新 `last_seen` 相对时间与状态色。
   - 详情统计由 `DeviceDetail` 在已解锁时 `fetch('/api/device/usage?days=7')`；未解锁不发起请求（PRD M2 验收点）。
 - **双变体 + 动画（T8/T8B/T8C）**：主页变体与日记流变体共用同一数据层（`useDeviceStatus` 轮询、解锁状态、usage 数据），仅渲染形态不同；视图切换用 prototype 的 `view-toggle`（URL `?page=` 可选，但本项目以 hash 路由为主，可用组件内 state，参照 prototype 的 `setPage`）。日记流横幅 = 卡片的信息压缩形态（状态文案 + 对话气泡 + 内联 Top3/24h + 7 天 sparkline + 展开面板）。动画（T8C）实现时先调用 `animate` / `animation-vocabulary` / `find-animation-opportunities` / `improve-animations` skill 校准动画设计；范围仅限打字机状态文案、猫猫三态（tail 摇摆 / zz 浮动 / 离线光环与翅膀 / 在线 bounce）、轮询刷新时的状态过渡；所有动画尊重 `prefers-reduced-motion`（prototype 已有对应 CSS）。

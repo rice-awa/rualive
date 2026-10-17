@@ -32,10 +32,16 @@ export default function DeviceBanner({
   let bubble: React.ReactNode
   if (!device.has_window) {
     bubble = <div className={[styles.bubble, styles.muted].join(' ')}>{t('device.noSession')}</div>
-  } else if (hasKey || device.public_window) {
+  } else if (hasKey && device.last_title) {
     bubble = (
       <div className={styles.bubble}>
         {t('device.usingApp')} <b>{appLabel(device.last_app)}</b>：{device.last_title}
+      </div>
+    )
+  } else if (device.last_app) {
+    bubble = (
+      <div className={styles.bubble}>
+        {t('device.usingApp')} <b>{appLabel(device.last_app)}</b>
       </div>
     )
   } else {

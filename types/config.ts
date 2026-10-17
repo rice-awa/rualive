@@ -57,8 +57,8 @@ export type DeviceConfig = {
   offlineAfterSeconds?: number
   /** 屏幕使用时长统计开关，默认 false（服务器等 headless 设备保持关闭） */
   usageTracking?: boolean
-  /** 当前窗口标题是否免密钥公开展示，默认 false（需 USAGE_API_KEY 解锁） */
-  publicWindow?: boolean
+  /** 未解锁时是否公开当前应用名（窗口标题始终需 USAGE_API_KEY），默认 false */
+  publicApp?: boolean
   /** 输入空闲多少秒判定「挂机」，默认 120 */
   idleThreshold?: number
   /** Agent 上报间隔（秒），同时是统计会计时长单位（每次活跃心跳计入的秒数），默认 30 */

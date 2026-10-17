@@ -102,7 +102,6 @@
   "device.hourlyShare": "佔該小時 {{percent}}%",
   "device.hourlyNoActivity": "無時長記錄",
   "device.noSession": "💤 目前沒有作用中的視窗",
-  "device.publicChip": "公開",
   "header.tagline": "似了喵？",
   "mtn.upcoming": "即將開始",
   "mtn.active": "進行中",

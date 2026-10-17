@@ -175,7 +175,7 @@ export async function cleanupDeviceEvents(env: Env, beforeTs: number): Promise<v
 
 /* ================= 设备公开视图（SSR 与 GET /api/device/status 共用） ================= */
 
-/** 前端展示用的设备视图（PRD §7 响应 schema + public_window / has_window 配置与真相标记） */
+/** 前端展示用的设备视图（PRD §7 响应 schema + public_app / has_window 配置与真相标记） */
 export type DevicePublicView = {
   device_id: string
   device_name: string
@@ -188,13 +188,15 @@ export type DevicePublicView = {
   /** 最近一次心跳是否带有窗口标题；切到桌面或锁屏时也可能为 false */
   has_window: boolean
   usage_tracking: boolean
-  public_window: boolean
+  /** 未解锁时是否公开应用名（窗口标题永不公开） */
+  public_app: boolean
   today_total_seconds: number | null
 }
 
 /**
  * 配置驱动的设备列表 + device_status join，无状态计算在线/挂机/离线。
- * hasValidKey 控制窗口字段（last_title/last_app）是否可见；SSR 侧固定传 false（公开字段只进 props）。
+ * 窗口标题只有在 hasValidKey 时可见；应用名在 hasValidKey 或 publicApp 时可见。
+ * SSR 侧固定传 false（公开字段只进 props）。
  */
 export async function buildDeviceViews(
   env: Env,
@@ -215,7 +217,7 @@ export async function buildDeviceViews(
 
     const online = !!status && now - status.last_seen <= offlineAfterSeconds
     const idle = online && (status?.last_idle ?? 0) >= idleThreshold
-    const windowVisible = !!status && (hasValidKey || cfg.publicWindow === true)
+    const appVisible = !!status && (hasValidKey || cfg.publicApp === true)
     const today = usageTracking && status ? await sumToday(env, cfg.id, dateInTimeZone(now, timeZone)) : null
 
     views.push({
@@ -225,11 +227,11 @@ export async function buildDeviceViews(
       online,
       idle,
       last_seen: status?.last_seen ?? null,
-      last_title: windowVisible ? status?.last_title ?? null : null,
-      last_app: windowVisible ? status?.last_app ?? null : null,
+      last_title: hasValidKey ? status?.last_title ?? null : null,
+      last_app: appVisible ? status?.last_app ?? null : null,
       has_window: !!status && status.last_title !== null && status.last_title !== '',
       usage_tracking: usageTracking,
-      public_window: cfg.publicWindow === true,
+      public_app: cfg.publicApp === true,
       today_total_seconds: today,
     })
   }
