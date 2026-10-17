@@ -195,7 +195,7 @@ export type DevicePublicView = {
 
 /**
  * 配置驱动的设备列表 + device_status join，无状态计算在线/挂机/离线。
- * 窗口标题只有在 hasValidKey 时可见；应用名在 hasValidKey 或 publicApp 时可见。
+ * 窗口标题只有在 hasValidKey 时可见；应用名在 hasValidKey 或 publicApp（默认 true）时可见。
  * SSR 侧固定传 false（公开字段只进 props）。
  */
 export async function buildDeviceViews(
@@ -217,7 +217,7 @@ export async function buildDeviceViews(
 
     const online = !!status && now - status.last_seen <= offlineAfterSeconds
     const idle = online && (status?.last_idle ?? 0) >= idleThreshold
-    const appVisible = !!status && (hasValidKey || cfg.publicApp === true)
+    const appVisible = !!status && (hasValidKey || cfg.publicApp !== false)
     const today = usageTracking && status ? await sumToday(env, cfg.id, dateInTimeZone(now, timeZone)) : null
 
     views.push({
@@ -231,7 +231,7 @@ export async function buildDeviceViews(
       last_app: appVisible ? status?.last_app ?? null : null,
       has_window: !!status && status.last_title !== null && status.last_title !== '',
       usage_tracking: usageTracking,
-      public_app: cfg.publicApp === true,
+      public_app: cfg.publicApp !== false,
       today_total_seconds: today,
     })
   }

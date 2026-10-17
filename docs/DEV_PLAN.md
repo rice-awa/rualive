@@ -214,7 +214,7 @@ CREATE TABLE IF NOT EXISTS device_notify_state (
 - **常量时间比较**：复用 `middleware.ts:12-20` 的写法，封装 `util/timingSafeEqual(a: string, b: string): boolean`，供 heartbeat 与 device API 共用。两个 secret 都从 `process.env` 读取（本地开发用 `wrangler pages dev` 的 `.dev.vars`）。
 - **`AGENT_TOKEN`（heartbeat）**：Header `Authorization: Bearer <AGENT_TOKEN>`。失败一律 `401`；缺 `device_id`/`title`/`app` → `400`。字段截断（title 200 / app 64）。请求体先读 `content-length` 或按 4KB 上限截断。不回 CORS 头（非浏览器调用方）。
 - **`USAGE_API_KEY`（读取）**：Header `X-API-Key`。分级规则严格按 PRD §F7 表：
-  - `/api/device/status`：无 key 或 key 无效 → `last_title` 为 `null`，`last_app` 仅在 `publicApp:true` 时公开；**key 无效与无 key 表现一致，不额外报错**（防枚举，前端只需区分"有没有详细字段"）。
+  - `/api/device/status`：无 key 或 key 无效 → `last_title` 为 `null`，`last_app` 默认公开（`publicApp:false` 时隐藏）；**key 无效与无 key 表现一致，不额外报错**（防枚举，前端只需区分"有没有详细字段"）。
   - `/api/device/usage`：无 key 或无效 → 一律 `401`。
   - CORS `Access-Control-Allow-Headers` 追加 `X-API-Key`（`pages/api/data.ts` 已有头模板可参考）。
 - **在线判定（无状态）**：读取方按 `now - last_seen` 实时算：`> offlineAfterSeconds`（默认 90）→ 离线；在线且 `last_idle >= idleThreshold`（默认 120）→ 挂机；否则活跃。写库时不更新状态字段。

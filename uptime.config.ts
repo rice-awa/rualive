@@ -86,7 +86,7 @@ const workerConfig: WorkerConfig = {
       os: 'linux',
       offlineAfterSeconds: 90,
       usageTracking: true,
-      publicApp: true,
+      // 未解锁时默认公开应用名（publicApp 默认 true），窗口标题仍需 USAGE_API_KEY
     },
     {
       id: 'riceawa-desktop',

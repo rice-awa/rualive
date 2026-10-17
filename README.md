@@ -108,7 +108,7 @@ Edit [`uptime.config.ts`](uptime.config.ts):
 - Add website or service targets to `workerConfig.monitors`.
 - Add each heartbeat device to `workerConfig.devices`.
 - Set `usageTracking: true` only for devices whose activity should be stored.
-- `publicApp` controls whether the current app name is shown to unauthenticated visitors; the window title always requires the key and is never public.
+- The current app name is public by default; set `publicApp: false` to hide it. The window title always requires the key and is never public.
 
 Example device configuration:
 
@@ -230,7 +230,7 @@ curl --request POST "$RUALIVE_URL/api/heartbeat" \
 
 - `AGENT_TOKEN` is used only for accepting heartbeats.
 - `USAGE_API_KEY` is required for usage charts and private window data.
-- Without a valid usage key, `/api/device/status` always returns `null` for `last_title`; `last_app` is public only when that device explicitly sets `publicApp: true`.
+- Without a valid usage key, `/api/device/status` always returns `null` for `last_title`; `last_app` is public by default and hidden only when that device explicitly sets `publicApp: false`.
 - The server timestamps heartbeats; client timestamps are not trusted for online status.
 - `agent/agent.json` and `.dev.vars` are ignored by Git. Do not commit either file.
 

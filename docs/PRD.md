@@ -165,7 +165,7 @@ Footer（现有）
    - 在线且活跃：「活着喵！」绿色猫
    - 在线但挂机：「在挂机喵…」灰色猫
    - 离线：「似了喵…」暗色 / 灰暗配色
-2. **辅助信息**：最后心跳相对时间（"X 分钟前"）与今日活跃总时长（仅开启统计的设备显示）**始终公开**；**当前活动窗口标题默认需密钥解锁**（F7），未解锁时该行显示 🔒 占位（"输入密钥查看"）；设备配置 `publicApp: true` 时未解锁只展示应用名（`app`），窗口标题（`title`）始终不公开
+2. **辅助信息**：最后心跳相对时间（"X 分钟前"）与今日活跃总时长（仅开启统计的设备显示）**始终公开**；**当前活动窗口标题默认需密钥解锁**（F7），未解锁时该行默认展示应用名（`app`），设备配置 `publicApp: false` 时回到 🔒 占位；窗口标题（`title`）始终不公开
 3. **解锁入口**：卡片 🔒 占位 / 详情页上的锁形按钮打开解锁弹窗（animal-island-ui `Modal`（自带打字机对话）+ `Input type="password"`，见 F8），输入 `USAGE_API_KEY` 成功后立即刷新为完整数据
 4. **交互**：点击卡片进入设备详情视图（URL hash `#device:<id>`，与现有 `#<monitorId>` 机制一致），详情内为 F4 统计图表（需密钥）+ 数据口径说明
 5. **自动刷新**：客户端每 30s 轮询 `GET /api/device/status`（SSR 提供首屏公开数据，避免白屏；密钥解锁后的详细字段由客户端轮询补齐）
@@ -240,7 +240,7 @@ Footer（现有）
 |---|---|
 | 在线 / 挂机 / 离线、最后活跃时间、设备名 | 公开 |
 | 今日活跃总时长（聚合） | 公开 |
-| 当前应用名（`app`） | 需密钥（除非设备配置 `publicApp: true`） |
+| 当前应用名（`app`） | 默认公开（设备配置 `publicApp: false` 可隐藏） |
 | 当前窗口标题（`title`） | **需密钥**（永不公开） |
 | 使用统计全套（`/api/device/usage`：应用排行、24h 时间线、趋势） | **需密钥** |
 
@@ -347,7 +347,7 @@ CREATE TABLE IF NOT EXISTS usage_daily (
 
 ### `GET /api/device/status`（新增，带 CORS，同 `pages/api/data.ts` 风格）
 
-- 鉴权：公开可读；可选 `X-API-Key` 头（F7）——带有效 key 时响应包含 `last_title` / `last_app`；否则 `last_title` 为 `null`，`last_app` 仅在设备配置 `publicApp: true` 时可见
+- 鉴权：公开可读；可选 `X-API-Key` 头（F7）——带有效 key 时响应包含 `last_title` / `last_app`；否则 `last_title` 为 `null`，`last_app` 默认可见（设备配置 `publicApp: false` 时隐藏）
 - CORS：`Access-Control-Allow-Headers` 需加入 `X-API-Key`
 
 ```json
@@ -476,7 +476,7 @@ const workerConfig: WorkerConfig = {
       name: 'Riceawa 的台式机',
       offlineAfterSeconds: 90,   // 超过此时长无心跳判定离线，默认 3 × 心跳间隔
       usageTracking: true,       // 屏幕使用时长统计开关，默认 false（服务器等设备保持关闭）
-      publicApp: false,          // 未解锁时是否公开应用名，默认 false；窗口标题始终需 USAGE_API_KEY
+      publicApp: false,          // 未解锁时是否公开应用名，默认 true；窗口标题始终需 USAGE_API_KEY
     },
   ],
   notification: { /* 复用现有 Resend 配置 */ },
