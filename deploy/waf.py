@@ -297,7 +297,8 @@ def apply_phase(zone_id, phase, rules, token):
         body = {
             "name": f"rualive {phase}",
             "description": "RUALIVE API protection (managed by deploy/waf.py)",
-            "kind": "root",
+            # 创建 zone 级 phase entrypoint 用 "zone"；"root" 仅用于 account 级。
+            "kind": "zone",
             "phase": phase,
             "rules": rules,
         }
