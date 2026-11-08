@@ -270,7 +270,8 @@ def build_rate_rule(plan):
         429,
         "rate_limited",
         ratelimit={
-            "characteristics": ["ip.src"],
+            # Cloudflare 要求在 colocation 级计数，cf.colo.id 为必填项。
+            "characteristics": ["ip.src", "cf.colo.id"],
             "period": plan["period"],
             "requests_per_period": plan["rpp"],
             "mitigation_timeout": plan["mitigation"],
