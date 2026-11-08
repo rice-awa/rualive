@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { workerConfig } from '@/uptime.config'
-import { timingSafeEqual } from '@/util/timingSafeEqual'
+import { withApiGuard } from '@/util/apiGuard'
 import {
   dateInTimeZone,
   dayStartInTimeZone,
@@ -10,45 +10,29 @@ import {
 
 export const runtime = 'edge'
 
-const headers = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, X-API-Key',
-}
-
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+const MAX_DEVICE_ID = 64
 
 /**
  * 使用统计读取（PRD F4 / §7.4）。
- * - 仅 X-API-Key 可访问：无 key 或 key 无效一律 401（与 status 接口的字段分级不同，此处用于解锁弹窗验证）
+ * - 仅 X-API-Key 可访问：无 key 或 key 无效一律 401（由 withApiGuard 统一处理）
  * - 仅配置内 device_id 可查；设备未开启 usageTracking 时返回空聚合
- * - ?days=N&date=YYYY-MM-DD：daily 从 date-days+1 到 date；hourly_today 为 date 当日逐小时（active_seconds 为活跃秒数，total_seconds 含挂机，不做 per-app 拆分）
+ * - ?days=N&date=YYYY-MM-DD：daily 从 date-days+1 到 date；hourly_today 为 date 当日逐小时
  */
-export default async function handler(req: NextRequest): Promise<Response> {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers })
-  }
-  if (req.method !== 'GET') {
-    return new Response('Method not allowed', { status: 405, headers })
-  }
-
-  const expectedKey = process.env.USAGE_API_KEY as string | undefined
-  const key = req.headers.get('X-API-Key') ?? ''
-  if (!expectedKey || !key || !timingSafeEqual(key, expectedKey)) {
-    return new Response('Unauthorized', { status: 401, headers })
-  }
-
+async function handler(req: NextRequest): Promise<Response> {
   const params = req.nextUrl.searchParams
-  const deviceId = params.get('device_id') ?? ''
+  const deviceId = (params.get('device_id') ?? '').slice(0, MAX_DEVICE_ID)
   // 无 device_id 的请求是解锁弹窗的密钥验证（只关心 key 是否有效），返回 200 空数据；
   // 否则 DeviceUnlockModal 会收到 404 并把任何非 200 显示成「密钥错误」。
   if (!deviceId) {
-    return new Response(JSON.stringify({ daily: [], hourly_today: [] }), { status: 200, headers })
+    return new Response(JSON.stringify({ daily: [], hourly_today: [] }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
   const deviceConfig = (workerConfig.devices ?? []).find((d) => d.id === deviceId)
   if (!deviceConfig) {
-    return new Response('Unknown device', { status: 404, headers })
+    return new Response('Unknown device', { status: 404 })
   }
 
   const timeZone = workerConfig.notification?.timeZone ?? 'Asia/Shanghai'
@@ -99,6 +83,11 @@ export default async function handler(req: NextRequest): Promise<Response> {
 
   return new Response(JSON.stringify({ daily, hourly_today: hourlyToday }), {
     status: 200,
-    headers,
+    headers: { 'Content-Type': 'application/json' },
   })
 }
+
+export default withApiGuard(handler, {
+  methods: ['GET'],
+  auth: 'key',
+})

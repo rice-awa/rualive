@@ -44,9 +44,9 @@ jobs:
 
       - name: Install packages
         run: |
-          npm install
+          npm ci
           cd worker
-          npm install
+          npm ci
 
       - name: Build worker
         run: |
@@ -146,3 +146,13 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ steps.fetch_account_id.outputs.account_id }}
+
+      # 在 Pages 上传之后应用 WAF：新部署先具备 uf_site Cookie，再开始拦截无 Cookie 请求。
+      # 需要 repo variables：CLOUDFLARE_ZONE_ID、STATUS_HOSTNAME（非 secret）。
+      - name: Apply WAF rules
+        if: ${{ vars.CLOUDFLARE_ZONE_ID != '' && vars.STATUS_HOSTNAME != '' }}
+        run: python3 deploy/waf.py --apply
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ZONE_ID: ${{ vars.CLOUDFLARE_ZONE_ID }}
+          STATUS_HOSTNAME: ${{ vars.STATUS_HOSTNAME }}

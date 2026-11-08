@@ -1,5 +1,7 @@
 import { NextRequest } from 'next/server'
+import { workerConfig } from '@/uptime.config'
 import { CompactedMonitorStateWrapper, getFromStore } from '@/worker/src/store'
+import { withApiGuard } from '@/util/apiGuard'
 
 export const runtime = 'edge'
 
@@ -11,9 +13,11 @@ type BadgePayload = {
   isError?: boolean
 }
 
-const jsonHeaders = {
-  'Content-Type': 'application/json',
-  'Cache-Control': 'no-store, max-age=0, must-revalidate',
+const MAX_ID = 64
+const MAX_TEXT = 64
+
+function cap(value: string | null, max: number): string {
+  return (value ?? '').slice(0, max)
 }
 
 function errorBadge(label: string, message: string): BadgePayload {
@@ -26,23 +30,34 @@ function errorBadge(label: string, message: string): BadgePayload {
   }
 }
 
-export default async function handler(req: NextRequest): Promise<Response> {
+function json(payload: BadgePayload, status = 200): Response {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+
+/**
+ * shields.io badge 数据（公开，供外部服务抓取）。
+ * 参数全部截断上限；未知 monitor id 返回 error badge，而不是误报 UP。
+ */
+async function handler(req: NextRequest): Promise<Response> {
   try {
     const url = new URL(req.url)
 
-    const monitorId = url.searchParams.get('id')
-    const label = url.searchParams.get('label') ?? monitorId ?? 'UptimeFlare'
+    const monitorId = cap(url.searchParams.get('id'), MAX_ID)
+    const label = cap(url.searchParams.get('label'), MAX_TEXT) || monitorId || 'UptimeFlare'
 
-    const upMsg = url.searchParams.get('up') ?? 'UP'
-    const downMsg = url.searchParams.get('down') ?? 'DOWN'
-    const colorUp = url.searchParams.get('colorUp') ?? 'brightgreen'
-    const colorDown = url.searchParams.get('colorDown') ?? 'red'
+    const upMsg = cap(url.searchParams.get('up'), MAX_TEXT) || 'UP'
+    const downMsg = cap(url.searchParams.get('down'), MAX_TEXT) || 'DOWN'
+    const colorUp = cap(url.searchParams.get('colorUp'), MAX_TEXT) || 'brightgreen'
+    const colorDown = cap(url.searchParams.get('colorDown'), MAX_TEXT) || 'red'
 
     if (!monitorId) {
-      return new Response(JSON.stringify(errorBadge(label, 'no-monitor')), {
-        headers: jsonHeaders,
-        status: 400,
-      })
+      return json(errorBadge(label, 'no-monitor'), 400)
+    }
+    if (!workerConfig.monitors.some((monitor) => monitor.id === monitorId)) {
+      return json(errorBadge(label, 'unknown-monitor'), 404)
     }
 
     const compactedState = new CompactedMonitorStateWrapper(
@@ -55,21 +70,21 @@ export default async function handler(req: NextRequest): Promise<Response> {
     )
     const isUp = lastIncident?.end !== null
 
-    const badge: BadgePayload = {
+    return json({
       schemaVersion: 1,
       label,
       message: isUp ? upMsg : downMsg,
       color: isUp ? colorUp : colorDown,
-    }
-
-    return new Response(JSON.stringify(badge), {
-      headers: jsonHeaders,
     })
   } catch (err) {
     console.error('Error rendering badge API:', err)
-    return new Response(JSON.stringify(errorBadge('status', 'error')), {
-      headers: jsonHeaders,
-      status: 500,
-    })
+    return json(errorBadge('status', 'error'), 500)
   }
 }
+
+export default withApiGuard(handler, {
+  methods: ['GET'],
+  auth: 'public',
+  // badge 是公开只读数据，允许边缘缓存 60s 降低 D1 读压力
+  cacheControl: 'public, max-age=60, s-maxage=60',
+})

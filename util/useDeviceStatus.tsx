@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { DevicePublicView } from '@/worker/src/deviceStore'
+import { reloadOnceForSession } from '@/util/sessionReload'
 import { clearUsageKey, fetchWithUsageKey, getUsageKey, setUsageKey } from '@/util/usageKey'
 
 /** 轮询间隔：30s（PRD F3 自动刷新） */
@@ -43,10 +44,10 @@ export function DeviceProvider({
   const poll = useCallback(async () => {
     try {
       const res = await fetchWithUsageKey('/api/device/status')
-      if (res.status === 401) {
-        // 密钥已失效（防御性处理；status 接口当前不返回 401）
-        clearUsageKey()
-        setHasKey(false)
+      if (res.status === 401 || res.status === 403) {
+        // 401/403 说明页面会话 Cookie 缺失或过期，不是 usage key 失效；
+        // 不能 clearUsageKey，否则会把用户有效密钥误删。整页 reload 重新拿 Cookie。
+        reloadOnceForSession()
         return
       }
       if (!res.ok) return

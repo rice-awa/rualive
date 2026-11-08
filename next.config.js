@@ -1,6 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // 不暴露 X-Powered-By；项目未使用 next/image，配合 WAF 封禁 /_next/image
+  poweredByHeader: false,
+  images: {
+    unoptimized: true,
+  },
 }
 
 module.exports = nextConfig

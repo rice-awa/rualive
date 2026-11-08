@@ -152,6 +152,15 @@ npm run dev
 | `AGENT_TOKEN` | 是 | 验证设备心跳 |
 | `USAGE_API_KEY` | 是 | 解锁私有窗口详情和使用统计 |
 
+WAF 规则是可选增强，需要额外配置 GitHub **Repository variables**（不是 secrets）：
+
+| Variable | 用途 |
+|---|---|
+| `CLOUDFLARE_ZONE_ID` | 状态页自定义域名所在 zone 的 32 位 ID |
+| `STATUS_HOSTNAME` | 状态页自定义域名（必须橙云代理） |
+
+配置后，工作流会在 Pages 上传完成后执行 `deploy/waf.py --apply`，在边缘校验 `/api/*` 的会话/Key/Agent Bearer、拦截未知 API 路径与错误方法，并按 IP 限流。`CLOUDFLARE_API_TOKEN` 需要 **Zone WAF: Edit** 权限。新增 API 路由时必须同步更新 `deploy/waf.py` 的 `KNOWN_PATHS`。
+
 工作流会构建 Worker 和 Pages 应用，根据 [`init.sql`](init.sql) 创建 / 初始化 D1，应用 Terraform 资源，并上传 Pages 部署。手动部署方式请参考 [上游部署文档](https://github.com/lyc8503/UptimeFlare/wiki)。
 
 ## 设备 Agent
@@ -190,11 +199,13 @@ python3 agent/agent.py --once --dry-run
 | 方法与路径 | 鉴权 | 说明 |
 |---|---|---|
 | `POST /api/heartbeat` | `Authorization: Bearer <AGENT_TOKEN>` | 接收设备心跳，并按配置记录使用数据；成功返回 `204`。 |
-| `GET /api/device/status` | 公开；`X-API-Key` 可选 | 返回在线 / 挂机 / 离线状态；有效密钥还会返回私有窗口字段。 |
+| `GET /api/device/status` | 页面会话 Cookie 或 `X-API-Key` | 返回在线 / 挂机 / 离线状态；有效密钥还会返回私有窗口字段。 |
 | `GET /api/device/usage?device_id=<id>&days=7` | 必须提供 `X-API-Key` | 返回每日、逐小时和应用使用数据。 |
-| `GET /api/data` | 公开 | 返回当前网站 / 服务监控状态 JSON。 |
-| `GET /api/state` | 公开 | 返回前端实时刷新使用的压缩状态。 |
-| `GET /api/badge?id=<monitor-id>` | 公开 | 返回指定监控的 badge 数据。 |
+| `GET /api/data` | 页面会话 Cookie 或 `X-API-Key` | 返回当前网站 / 服务监控状态 JSON（legacy）。 |
+| `GET /api/state` | 页面会话 Cookie 或 `X-API-Key` | 返回前端实时刷新使用的压缩状态。 |
+| `GET /api/badge?id=<monitor-id>` | 公开 | 返回指定监控的 badge 数据（允许边缘缓存 60s）。 |
+
+浏览器访问页面时，middleware 会下发签名会话 Cookie `uf_site`，同源 API 请求自动携带。直接调用上述读接口的脚本必须改为带 `X-API-Key`；API 不再返回通配 `Access-Control-Allow-Origin: *`，跨域消费方请走密钥。
 
 心跳请求示例：
 

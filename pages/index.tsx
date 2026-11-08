@@ -10,6 +10,7 @@ import Footer from '@/components/Footer'
 import DeviceSection from '@/components/DeviceSection'
 import LeafDivider from '@/components/LeafDivider'
 import { DeviceProvider } from '@/util/useDeviceStatus'
+import { reloadOnceForSession } from '@/util/sessionReload'
 import { buildDeviceViews, DevicePublicView } from '@/worker/src/deviceStore'
 import { useTranslation } from 'react-i18next'
 import { useEffect, useState } from 'react'
@@ -45,6 +46,11 @@ export default function Home({
     const poll = async () => {
       try {
         const res = await fetch('/api/state')
+        if (res.status === 401 || res.status === 403) {
+          // 页面会话 Cookie 缺失/过期：整页 reload 重新走 middleware 下发。
+          reloadOnceForSession()
+          return
+        }
         if (!res.ok) return
         const data = (await res.json()) as { compactedStateStr?: string }
         if (cancelled || typeof data.compactedStateStr !== 'string') return

@@ -162,6 +162,15 @@ Pushing to `main` runs [`.github/workflows/deploy.yml`](.github/workflows/deploy
 | `AGENT_TOKEN` | Yes | Authenticates device heartbeats |
 | `USAGE_API_KEY` | Yes | Unlocks private device details and usage data |
 
+WAF rules are optional and use GitHub **Repository variables** (not secrets):
+
+| Variable | Purpose |
+|---|---|
+| `CLOUDFLARE_ZONE_ID` | 32-char zone ID containing the status page custom domain |
+| `STATUS_HOSTNAME` | Public status page hostname (must be proxied by Cloudflare) |
+
+When set, the workflow runs `deploy/waf.py --apply` after the Pages upload to require a page session / `X-API-Key` / agent Bearer on `/api/*`, block unknown API paths and wrong methods, and rate-limit by IP. The `CLOUDFLARE_API_TOKEN` needs **Zone WAF: Edit**. New API routes must be added to `KNOWN_PATHS` in `deploy/waf.py`.
+
 The workflow builds the Worker and Pages app, creates or initializes the D1 database from [`init.sql`](init.sql), applies Terraform resources, and uploads the Pages deployment. For manual deployment options, see the [upstream deployment documentation](https://github.com/lyc8503/UptimeFlare/wiki).
 
 ## Device agent
@@ -200,11 +209,13 @@ python3 agent/agent.py --once --dry-run
 | Method and path | Authentication | Description |
 |---|---|---|
 | `POST /api/heartbeat` | `Authorization: Bearer <AGENT_TOKEN>` | Accepts a device heartbeat and optionally records usage data. Returns `204` on success. |
-| `GET /api/device/status` | Public; `X-API-Key` is optional | Returns online/idle/offline status. A valid key also exposes private window fields. |
+| `GET /api/device/status` | Page session cookie or `X-API-Key` | Returns online/idle/offline status. A valid key also exposes private window fields. |
 | `GET /api/device/usage?device_id=<id>&days=7` | `X-API-Key` required | Returns daily, hourly, and application usage data. |
-| `GET /api/data` | Public | Returns the current monitor status as JSON. |
-| `GET /api/state` | Public | Returns the compact state used by live page refreshes. |
-| `GET /api/badge?id=<monitor-id>` | Public | Returns a badge payload for a monitor. |
+| `GET /api/data` | Page session cookie or `X-API-Key` | Returns the current monitor status as JSON (legacy). |
+| `GET /api/state` | Page session cookie or `X-API-Key` | Returns the compact state used by live page refreshes. |
+| `GET /api/badge?id=<monitor-id>` | Public | Returns a badge payload for a monitor (edge-cached for 60s). |
+
+The middleware issues a signed `uf_site` cookie on browser document navigation; same-origin API requests carry it automatically. Scripts calling the read endpoints directly must use `X-API-Key`. The APIs no longer return a wildcard `Access-Control-Allow-Origin: *`; cross-origin consumers should use the key.
 
 Example heartbeat:
 

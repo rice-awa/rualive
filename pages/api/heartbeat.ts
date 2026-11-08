@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { workerConfig } from '@/uptime.config'
+import { withApiGuard } from '@/util/apiGuard'
 import { timingSafeEqual } from '@/util/timingSafeEqual'
 import {
   appendDeviceEvent,
@@ -12,6 +13,7 @@ export const runtime = 'edge'
 
 /** 请求体上限 4KB（PRD §8）；字段截断上限 */
 const MAX_BODY = 4096
+const MAX_DEVICE_ID = 64
 const MAX_TITLE = 200
 const MAX_APP = 64
 const MAX_OS = 64
@@ -24,7 +26,7 @@ const MAX_OS = 64
  * - usageTracking 设备：追加 device_events 采样；按应用或 idle 分类原子累加 usage_daily
  * - 不回 CORS 头（非浏览器调用方）
  */
-export default async function handler(req: NextRequest): Promise<Response> {
+async function handler(req: NextRequest): Promise<Response> {
   const token = process.env.AGENT_TOKEN as string | undefined
   if (!token) {
     console.error('[heartbeat] AGENT_TOKEN not configured on Pages env')
@@ -60,7 +62,7 @@ export default async function handler(req: NextRequest): Promise<Response> {
   const deviceId = typeof body.device_id === 'string' ? body.device_id.trim() : ''
   const title = typeof body.title === 'string' ? body.title.trim().slice(0, MAX_TITLE) : null
   const app = typeof body.app === 'string' ? body.app.trim().slice(0, MAX_APP) : null
-  if (!deviceId || title === null || app === null) {
+  if (!deviceId || deviceId.length > MAX_DEVICE_ID || title === null || app === null) {
     return new Response('Missing device_id / title / app', { status: 400 })
   }
   const idle = typeof body.idle === 'number' && Number.isFinite(body.idle) ? body.idle : 0
@@ -112,3 +114,9 @@ export default async function handler(req: NextRequest): Promise<Response> {
 
   return new Response(null, { status: 204 })
 }
+
+export default withApiGuard(handler, {
+  methods: ['POST'],
+  // Bearer token 在 handler 内校验（需要读取 AGENT_TOKEN 才能给出明确 401）
+  auth: 'agent',
+})

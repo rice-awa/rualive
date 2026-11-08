@@ -4,7 +4,7 @@ import { DeviceConfig } from '../../types/config'
 /**
  * 「似了喵？」设备监控数据层（worker 与 pages 共用）
  * - worker cron 调用：listDeviceStatus / getNotifyState / setNotifyState / cleanupDeviceEvents
- * - pages API 调用：upsertDeviceStatus / appendDeviceEvent / incrementUsageDaily / sumToday / getUsageDaily / getHourlyToday / listDeviceStatus
+ * - pages API 调用：upsertDeviceStatus / appendDeviceEvent / incrementUsageDaily / sumToday / sumTodayForDevices / getUsageDaily / getHourlyToday / listDeviceStatus
  * 不要复制到 pages 侧，直接 import 本模块。
  */
 
@@ -103,6 +103,29 @@ export async function sumToday(env: Env, deviceId: string, date: string): Promis
     .bind(deviceId, date)
     .first<{ total: number | null }>()
   return res?.total ?? 0
+}
+
+/**
+ * 批量查询多设备某日总时长，避免 buildDeviceViews 里逐设备 N+1 查 D1。
+ * 返回 Map；没有数据的设备不在 Map 中（调用方按 0 处理）。
+ */
+export async function sumTodayForDevices(
+  env: Env,
+  deviceIds: string[],
+  date: string
+): Promise<Map<string, number>> {
+  if (deviceIds.length === 0) return new Map()
+
+  const placeholders = deviceIds.map(() => '?').join(', ')
+  const res = await env.UPTIMEFLARE_D1.prepare(
+    `SELECT device_id, SUM(duration) AS total FROM usage_daily
+     WHERE device_id IN (${placeholders}) AND date = ?
+     GROUP BY device_id`
+  )
+    .bind(...deviceIds, date)
+    .all<{ device_id: string; total: number | null }>()
+
+  return new Map((res.results ?? []).map((r) => [r.device_id, r.total ?? 0]))
 }
 
 /** 从 fromDate（含）起的每日聚合 */
@@ -208,6 +231,13 @@ export async function buildDeviceViews(
   const statusRows = await listDeviceStatus(env)
   const byId = new Map(statusRows.map((s) => [s.device_id, s]))
 
+  // 一次 GROUP BY 拿到所有开启统计设备的今日总时长，避免逐设备查询。
+  const todayDate = dateInTimeZone(now, timeZone)
+  const usageDeviceIds = devices
+    .filter((d) => (d.usageTracking ?? false) && byId.has(d.id))
+    .map((d) => d.id)
+  const todayByDevice = await sumTodayForDevices(env, usageDeviceIds, todayDate)
+
   const views: DevicePublicView[] = []
   for (const cfg of devices) {
     const status = byId.get(cfg.id)
@@ -218,7 +248,7 @@ export async function buildDeviceViews(
     const online = !!status && now - status.last_seen <= offlineAfterSeconds
     const idle = online && (status?.last_idle ?? 0) >= idleThreshold
     const appVisible = !!status && (hasValidKey || cfg.publicApp !== false)
-    const today = usageTracking && status ? await sumToday(env, cfg.id, dateInTimeZone(now, timeZone)) : null
+    const today = usageTracking && status ? (todayByDevice.get(cfg.id) ?? 0) : null
 
     views.push({
       device_id: cfg.id,

@@ -71,3 +71,27 @@ push 到 `main` 触发 `.github/workflows/deploy.yml`：构建 worker（dry-run�
 ## 语言 / i18n
 
 界面文案经 `util/i18n.ts` 初始化 i18next，`pages/_app.tsx` 引入；新增文案加到 `locales/zh-CN/common.json`（及 `zh-TW` / `en` 对应项），不要硬编码在组件里。仓库注释与配置说明为中文。
+
+## 排查手法：D1 用量审计（Cloudflare GraphQL）
+
+想查「谁在读 D1、读了多少行」时不必进 dashboard，直接用 Cloudflare GraphQL Analytics：
+
+- endpoint：`POST https://api.cloudflare.com/client/v4/graphql`
+- 账号 tag `00e547a4e45eb35c9426ce294c485192`；本项目 D1 `9c29093c-af1a-4fd7-b9c7-4c616699dfa3`。`worker/wrangler.toml` 里的 `database_id` 是占位符，真实 id 只在 Cloudflare / CI 变量里，也可从 `GET /accounts/{acc}/workers/scripts/uptimeflare_worker/settings` 的 bindings 读到。
+- 数据集：`d1QueriesAdaptiveGroups`（按 query 文本分组）、`d1AnalyticsAdaptiveGroups`（整库）。
+- dimensions：`date`、`query`、`databaseId`；measures：`count`、`sum { rowsRead rowsWritten }`。
+- 需要 Account Analytics:Read 权限；D1 权限（`/d1/database`）是另一回事，缺了照样能查 GraphQL。
+- 例：按天列出每条 query 的执行次数与读取行数，`orderBy: [sum_rowsRead_DESC]` 可一眼看出读取大头。
+- 同账号下还有第二个 D1 `0d0f6626-bf47-4d5a-972b-9fb7ad5d0919`（Vaultwarden），排查时用 `databaseId` 过滤掉。
+
+## API 保护（会话 Cookie + WAF）
+
+- 页面响应由 `middleware.ts` 下发签名 Cookie `uf_site`（`util/siteSession.ts`，HMAC-SHA256；secret 优先 `SITE_SESSION_SECRET`，否则 `AGENT_TOKEN:USAGE_API_KEY`）。Cookie 只是 WAF 的“存在性”标记，真正的签名校验在 `util/apiGuard.ts`。
+- 所有 `pages/api/*` 都通过 `withApiGuard` 导出：
+  - `auth: 'session-or-key'`：`/api/state`、`/api/data`、`/api/device/status`
+  - `auth: 'key'`：`/api/device/usage`
+  - `auth: 'agent'`：`/api/heartbeat`（handler 内校验 Bearer）
+  - `auth: 'public'`：`/api/badge`
+- API 不再发送通配 CORS 头；跨域消费方用 `X-API-Key`。
+- WAF 规则在 `deploy/waf.py`（按 `ref` 前缀 `rualive_` 合并，默认 dry-run）。CI 在 `CLOUDFLARE_ZONE_ID` + `STATUS_HOSTNAME` 配置后执行 `--apply`。**新增 API 路由必须同步 `KNOWN_PATHS`**，否则会被 WAF 的 allowlist 拦掉。
+- `public/_headers` 只作用于静态资源；SSR/API 的安全头在 `middleware.ts` / `util/apiGuard.ts`。改 CSP 时两处同步。

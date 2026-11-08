@@ -1,17 +1,15 @@
 import { maintenances, workerConfig } from '@/uptime.config'
 import { NextRequest } from 'next/server'
 import { CompactedMonitorStateWrapper, getFromStore } from '@/worker/src/store'
+import { withApiGuard } from '@/util/apiGuard'
 
 export const runtime = 'edge'
 
-const headers = {
-  'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-}
-
-export default async function handler(req: NextRequest): Promise<Response> {
+/**
+ * 监控状态 JSON API（legacy）。
+ * 鉴权：页面会话 Cookie 或 X-API-Key；跨域消费方请显式带 X-API-Key。
+ */
+async function handler(req: NextRequest): Promise<Response> {
   const compactedState = new CompactedMonitorStateWrapper(
     await getFromStore(process.env as any, 'state')
   )
@@ -19,7 +17,7 @@ export default async function handler(req: NextRequest): Promise<Response> {
   if (compactedState.data.lastUpdate === 0) {
     return new Response(JSON.stringify({ error: 'No data available' }), {
       status: 500,
-      headers,
+      headers: { 'Content-Type': 'application/json' },
     })
   }
 
@@ -50,6 +48,12 @@ export default async function handler(req: NextRequest): Promise<Response> {
   }
 
   return new Response(JSON.stringify(ret), {
-    headers,
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
   })
 }
+
+export default withApiGuard(handler, {
+  methods: ['GET'],
+  auth: 'session-or-key',
+})
