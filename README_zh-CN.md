@@ -152,14 +152,15 @@ npm run dev
 | `AGENT_TOKEN` | 是 | 验证设备心跳 |
 | `USAGE_API_KEY` | 是 | 解锁私有窗口详情和使用统计 |
 
-WAF 规则是可选增强，需要额外配置 GitHub **Repository variables**（不是 secrets）：
+WAF 规则是可选增强，需要额外配置以下 GitHub **Repository secrets 或 variables**（两处都支持，secrets 优先）：
 
-| Variable | 用途 |
+| 名称 | 用途 |
 |---|---|
 | `CLOUDFLARE_ZONE_ID` | 状态页自定义域名所在 zone 的 32 位 ID |
 | `STATUS_HOSTNAME` | 状态页自定义域名（必须橙云代理） |
+| `WAF_API_TOKEN` | 可选；仅需 **Zone WAF: Edit** 的独立 token，未配置时回退到 `CLOUDFLARE_API_TOKEN` |
 
-配置后，工作流会在 Pages 上传完成后执行 `deploy/waf.py --apply`，在边缘校验 `/api/*` 的会话/Key/Agent Bearer、拦截未知 API 路径与错误方法，并按 IP 限流。`CLOUDFLARE_API_TOKEN` 需要 **Zone WAF: Edit** 权限。新增 API 路由时必须同步更新 `deploy/waf.py` 的 `KNOWN_PATHS`。
+配置后，工作流会在 Pages 上传完成后执行 `deploy/waf.py --apply`，在边缘校验 `/api/*` 的会话/Key/Agent Bearer、拦截未知 API 路径与错误方法，并按 IP 限流。两个名称都未配置时脚本会打印跳过信息并正常退出。新增 API 路由时必须同步更新 `deploy/waf.py` 的 `KNOWN_PATHS`。
 
 工作流会构建 Worker 和 Pages 应用，根据 [`init.sql`](init.sql) 创建 / 初始化 D1，应用 Terraform 资源，并上传 Pages 部署。手动部署方式请参考 [上游部署文档](https://github.com/lyc8503/UptimeFlare/wiki)。
 

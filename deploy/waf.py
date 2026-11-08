@@ -9,9 +9,11 @@
 默认 dry-run；CI 里用 `--apply` 才真正写入。
 
 所需环境变量：
-  CLOUDFLARE_API_TOKEN  (Zone WAF: Edit)
+  CLOUDFLARE_API_TOKEN  (Zone WAF: Edit；CI 会优先用 WAF_API_TOKEN 注入到这里)
   CLOUDFLARE_ZONE_ID
   STATUS_HOSTNAME       (状态页自定义域名，必须橙云代理)
+
+CLOUDFLARE_ZONE_ID 与 STATUS_HOSTNAME 同时为空时直接跳过（fork / 未启用 WAF）。
 
 用法：
   python3 deploy/waf.py                 # dry-run，打印计划
@@ -286,9 +288,16 @@ def main():
     parser.add_argument("--apply", action="store_true", help="write rules to Cloudflare")
     args = parser.parse_args()
 
-    token = os.environ.get("CLOUDFLARE_API_TOKEN", "")
-    zone_id = os.environ.get("CLOUDFLARE_ZONE_ID", "")
-    hostname = os.environ.get("STATUS_HOSTNAME", "")
+    token = os.environ.get("CLOUDFLARE_API_TOKEN", "").strip()
+    zone_id = os.environ.get("CLOUDFLARE_ZONE_ID", "").strip()
+    hostname = os.environ.get("STATUS_HOSTNAME", "").strip()
+
+    # 未配置时允许 CI 直接跳过（fork / 未启用 WAF 的部署）。
+    if not zone_id and not hostname:
+        print("WAF not configured (CLOUDFLARE_ZONE_ID / STATUS_HOSTNAME empty); skipping")
+        return
+    if not zone_id or not hostname:
+        fail("both CLOUDFLARE_ZONE_ID and STATUS_HOSTNAME are required")
 
     if not re.fullmatch(r"[a-z0-9.-]+", hostname):
         fail("STATUS_HOSTNAME must be a lowercase hostname, e.g. status.example.com")

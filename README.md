@@ -162,14 +162,15 @@ Pushing to `main` runs [`.github/workflows/deploy.yml`](.github/workflows/deploy
 | `AGENT_TOKEN` | Yes | Authenticates device heartbeats |
 | `USAGE_API_KEY` | Yes | Unlocks private device details and usage data |
 
-WAF rules are optional and use GitHub **Repository variables** (not secrets):
+WAF rules are optional and read the following GitHub **Repository secrets or variables** (either works; secrets take precedence):
 
-| Variable | Purpose |
+| Name | Purpose |
 |---|---|
 | `CLOUDFLARE_ZONE_ID` | 32-char zone ID containing the status page custom domain |
 | `STATUS_HOSTNAME` | Public status page hostname (must be proxied by Cloudflare) |
+| `WAF_API_TOKEN` | Optional token scoped to **Zone WAF: Edit**; falls back to `CLOUDFLARE_API_TOKEN` |
 
-When set, the workflow runs `deploy/waf.py --apply` after the Pages upload to require a page session / `X-API-Key` / agent Bearer on `/api/*`, block unknown API paths and wrong methods, and rate-limit by IP. The `CLOUDFLARE_API_TOKEN` needs **Zone WAF: Edit**. New API routes must be added to `KNOWN_PATHS` in `deploy/waf.py`.
+When set, the workflow runs `deploy/waf.py --apply` after the Pages upload to require a page session / `X-API-Key` / agent Bearer on `/api/*`, block unknown API paths and wrong methods, and rate-limit by IP. If neither name is configured, the script prints a skip notice and exits successfully. New API routes must be added to `KNOWN_PATHS` in `deploy/waf.py`.
 
 The workflow builds the Worker and Pages app, creates or initializes the D1 database from [`init.sql`](init.sql), applies Terraform resources, and uploads the Pages deployment. For manual deployment options, see the [upstream deployment documentation](https://github.com/lyc8503/UptimeFlare/wiki).
 

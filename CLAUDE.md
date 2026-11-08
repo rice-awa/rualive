@@ -93,5 +93,5 @@ push 到 `main` 触发 `.github/workflows/deploy.yml`：构建 worker（dry-run�
   - `auth: 'agent'`：`/api/heartbeat`（handler 内校验 Bearer）
   - `auth: 'public'`：`/api/badge`
 - API 不再发送通配 CORS 头；跨域消费方用 `X-API-Key`。
-- WAF 规则在 `deploy/waf.py`（按 `ref` 前缀 `rualive_` 合并，默认 dry-run）。CI 在 `CLOUDFLARE_ZONE_ID` + `STATUS_HOSTNAME` 配置后执行 `--apply`。**新增 API 路由必须同步 `KNOWN_PATHS`**，否则会被 WAF 的 allowlist 拦掉。
+- WAF 规则在 `deploy/waf.py`（按 `ref` 前缀 `rualive_` 合并，默认 dry-run）。CI 在 `CLOUDFLARE_ZONE_ID` + `STATUS_HOSTNAME` 配置后执行 `--apply`（放 Repository secrets 或 variables 均可）；token 优先 `WAF_API_TOKEN`（Zone WAF: Edit），否则回退 `CLOUDFLARE_API_TOKEN`。两者都未配置时脚本自动跳过。**新增 API 路由必须同步 `KNOWN_PATHS`**，否则会被 WAF 的 allowlist 拦掉。
 - `public/_headers` 只作用于静态资源；SSR/API 的安全头在 `middleware.ts` / `util/apiGuard.ts`。改 CSP 时两处同步。
