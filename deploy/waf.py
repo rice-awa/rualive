@@ -98,10 +98,44 @@ def api(method, path, token, body=None):
     return payload.get("result")
 
 
+def try_api(method, path, token):
+    """同 api，但不退出；返回 (result, error)。"""
+    try:
+        response = requests.request(
+            method,
+            API + path,
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=30,
+        )
+    except requests.RequestException as exc:
+        return None, f"{method} {path} request failed: {exc}"
+
+    try:
+        payload = response.json()
+    except ValueError:
+        return None, (
+            f"{method} {path} returned non-JSON ({response.status_code}): "
+            f"{response.text[:300]}"
+        )
+
+    if not payload.get("success"):
+        return None, (
+            f"{method} {path} failed ({response.status_code}): {payload.get('errors')}"
+        )
+    return payload.get("result"), None
+
+
 def get_plan(zone_id, token):
-    result = api("GET", f"/zones/{zone_id}", token)
+    """读 zone plan；失败时返回 warning 而不是退出。
+
+    WAF_API_TOKEN 通常只有 Zone WAF: Edit，没有 Zone:Read，读 /zones/{id}
+    会返回 9109。此时回退到 Free 档（规则数与限流参数最保守），不阻塞写规则。
+    """
+    result, error = try_api("GET", f"/zones/{zone_id}", token)
+    if error:
+        return None, None, error
     plan_id = str((result.get("plan") or {}).get("id", "free")).lower()
-    return plan_id, PLAN_LIMITS.get(plan_id, PLAN_LIMITS["free"])
+    return plan_id, PLAN_LIMITS.get(plan_id, PLAN_LIMITS["free"]), None
 
 
 def get_entrypoint(zone_id, phase, token):
@@ -313,7 +347,14 @@ def main():
     existing_rate = None
 
     if token:
-        plan_id, plan = get_plan(zone_id, token)
+        plan_id, plan, plan_error = get_plan(zone_id, token)
+        if plan_error:
+            plan_id, plan = "free", PLAN_LIMITS["free"]
+            print(
+                f"WARNING: cannot read zone plan ({plan_error}); "
+                "using free-plan limits and default block responses",
+                file=sys.stderr,
+            )
         existing_custom = get_entrypoint(zone_id, CUSTOM_PHASE, token)
         existing_rate = get_entrypoint(zone_id, RATE_PHASE, token)
 
